@@ -27,11 +27,11 @@ func downloadToTemp(ctx context.Context, asset Asset) (path string, cleanup func
 
 	resp, err := httpClient.Do(req)
 	if err != nil {
-		return "", func() {}, fmt.Errorf("téléchargement: %w", err)
+		return "", func() {}, fmt.Errorf("download: %w", err)
 	}
 	defer resp.Body.Close()
 	if resp.StatusCode != http.StatusOK {
-		return "", func() {}, fmt.Errorf("téléchargement: statut %d", resp.StatusCode)
+		return "", func() {}, fmt.Errorf("download: status %d", resp.StatusCode)
 	}
 
 	f, err := os.CreateTemp("", "aws-tui-update-*")
@@ -42,7 +42,7 @@ func downloadToTemp(ctx context.Context, asset Asset) (path string, cleanup func
 
 	if _, err := io.Copy(f, io.LimitReader(resp.Body, maxDownloadBytes)); err != nil {
 		cleanup()
-		return "", func() {}, fmt.Errorf("écriture de l'archive: %w", err)
+		return "", func() {}, fmt.Errorf("writing the archive: %w", err)
 	}
 	if err := f.Close(); err != nil {
 		cleanup()
@@ -57,7 +57,7 @@ func downloadToTemp(ctx context.Context, asset Asset) (path string, cleanup func
 func verifyChecksum(ctx context.Context, rel *Release, assetName, archivePath string) error {
 	sums, err := rel.findAsset("checksums.txt")
 	if err != nil {
-		return fmt.Errorf("checksums.txt introuvable dans la release: refus d'installer un binaire non vérifié")
+		return fmt.Errorf("checksums.txt not found in the release: refusing to install an unverified binary")
 	}
 
 	expected, err := fetchExpectedChecksum(ctx, sums.BrowserDownloadURL, assetName)
@@ -70,7 +70,7 @@ func verifyChecksum(ctx context.Context, rel *Release, assetName, archivePath st
 		return err
 	}
 	if !strings.EqualFold(actual, expected) {
-		return fmt.Errorf("checksum invalide pour %s (attendu %s, obtenu %s)", assetName, expected, actual)
+		return fmt.Errorf("invalid checksum for %s (expected %s, got %s)", assetName, expected, actual)
 	}
 	return nil
 }
@@ -86,7 +86,7 @@ func fetchExpectedChecksum(ctx context.Context, url, assetName string) (string, 
 
 	resp, err := httpClient.Do(req)
 	if err != nil {
-		return "", fmt.Errorf("téléchargement des checksums: %w", err)
+		return "", fmt.Errorf("downloading checksums: %w", err)
 	}
 	defer resp.Body.Close()
 	if resp.StatusCode != http.StatusOK {
@@ -110,7 +110,7 @@ func fetchExpectedChecksum(ctx context.Context, url, assetName string) (string, 
 	if err := sc.Err(); err != nil {
 		return "", err
 	}
-	return "", fmt.Errorf("aucun checksum listé pour %s", assetName)
+	return "", fmt.Errorf("no checksum listed for %s", assetName)
 }
 
 // fileSHA256 returns the lowercase hex SHA-256 of a file.

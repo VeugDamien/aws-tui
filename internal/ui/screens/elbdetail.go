@@ -74,7 +74,7 @@ func (d *ELBDetail) View(spinner string) string {
 	body, total, shown := d.applyScroll(b.String())
 	out := title + "\n\n" + body
 	if total > shown {
-		out += "\n" + detailMutedStyle.Render(fmt.Sprintf("↑/↓ défiler (%d/%d)", d.scroll+1, total))
+		out += "\n" + detailMutedStyle.Render(fmt.Sprintf("↑/↓ scroll (%d/%d)", d.scroll+1, total))
 	}
 	return out
 }
@@ -101,14 +101,14 @@ func (d *ELBDetail) applyScroll(s string) (string, int, int) {
 func (d *ELBDetail) renderGeneral(width int) string {
 	lb := d.LB
 	var b strings.Builder
-	b.WriteString(detailSectionStyle.Width(width).Render("Informations générales") + "\n")
+	b.WriteString(detailSectionStyle.Width(width).Render("General information") + "\n")
 	b.WriteString(kv("Type", lb.Type))
-	b.WriteString(kv("Schéma", lb.Scheme))
-	b.WriteString(kv("État", lb.State))
+	b.WriteString(kv("Scheme", lb.Scheme))
+	b.WriteString(kv("State", lb.State))
 	b.WriteString(kv("DNS", lb.DNSName))
 	b.WriteString(kv("VPC", lb.VPCID))
 	b.WriteString(kv("Zones", strings.Join(lb.AZs, ", ")))
-	b.WriteString(kv("Créé le", lb.CreatedTime))
+	b.WriteString(kv("Created at", lb.CreatedTime))
 	return b.String()
 }
 
@@ -118,12 +118,12 @@ func (d *ELBDetail) renderListeners(spinner string, width int) string {
 
 	switch d.ListenersState {
 	case BlockLoading:
-		b.WriteString(detailMutedStyle.Render(spinner+" Chargement des listeners…") + "\n")
+		b.WriteString(detailMutedStyle.Render(spinner+" Loading listeners…") + "\n")
 	case BlockError:
-		b.WriteString(detailErrStyle.Render("Erreur: "+errText(d.ListenersErr)) + "\n")
+		b.WriteString(detailErrStyle.Render("Error: "+errText(d.ListenersErr)) + "\n")
 	case BlockLoaded:
 		if len(d.Listeners) == 0 {
-			b.WriteString(detailMutedStyle.Render("Aucun listener.") + "\n")
+			b.WriteString(detailMutedStyle.Render("No listener.") + "\n")
 		}
 		for _, l := range d.Listeners {
 			b.WriteString(detailOKStyle.Render(fmt.Sprintf("● %s:%d", l.Protocol, l.Port)) + "\n")
@@ -134,16 +134,16 @@ func (d *ELBDetail) renderListeners(spinner string, width int) string {
 
 func (d *ELBDetail) renderTargetGroups(spinner string, width int) string {
 	var b strings.Builder
-	b.WriteString(detailSectionStyle.Width(width).Render("Target groups & santé des cibles") + "\n")
+	b.WriteString(detailSectionStyle.Width(width).Render("Target groups & target health") + "\n")
 
 	switch d.TGState {
 	case BlockLoading:
-		b.WriteString(detailMutedStyle.Render(spinner+" Chargement des cibles…") + "\n")
+		b.WriteString(detailMutedStyle.Render(spinner+" Loading targets…") + "\n")
 	case BlockError:
-		b.WriteString(detailErrStyle.Render("Erreur: "+errText(d.TGErr)) + "\n")
+		b.WriteString(detailErrStyle.Render("Error: "+errText(d.TGErr)) + "\n")
 	case BlockLoaded:
 		if len(d.TGs) == 0 {
-			b.WriteString(detailMutedStyle.Render("Aucun target group.") + "\n")
+			b.WriteString(detailMutedStyle.Render("No target group.") + "\n")
 		}
 		for _, tg := range d.TGs {
 			b.WriteString(renderTGSummary(tg) + "\n")

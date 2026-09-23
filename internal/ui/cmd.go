@@ -67,7 +67,7 @@ func loginCmd(profile awsconfig.Profile) tea.Cmd {
 	name, args, ok := auth.LoginCommand(profile)
 	if !ok {
 		return func() tea.Msg {
-			return errMsg{fmt.Errorf("aucune méthode de connexion interactive pour le profil %q (%s)", profile.Name, profile.AuthKind)}
+			return errMsg{fmt.Errorf("no interactive login method for profile %q (%s)", profile.Name, profile.AuthKind)}
 		}
 	}
 	c := exec.Command(name, args...)
@@ -81,7 +81,7 @@ func logoutCmd(profile awsconfig.Profile) tea.Cmd {
 	name, args, ok := auth.LogoutCommand(profile)
 	if !ok {
 		return func() tea.Msg {
-			return errMsg{fmt.Errorf("logout non applicable pour le profil %q (%s)", profile.Name, profile.AuthKind)}
+			return errMsg{fmt.Errorf("logout not applicable for profile %q (%s)", profile.Name, profile.AuthKind)}
 		}
 	}
 	return func() tea.Msg {
@@ -218,7 +218,7 @@ func loadMetricsCmd(cfg aws.Config, instanceID string, windowMin int) tea.Cmd {
 func shellCmd(profile, region, target string) tea.Cmd {
 	if !ssm.PluginAvailable() {
 		return func() tea.Msg {
-			return errMsg{fmt.Errorf("session-manager-plugin introuvable : installez-le pour utiliser les sessions SSM")}
+			return errMsg{fmt.Errorf("session-manager-plugin not found: install it to use SSM sessions")}
 		}
 	}
 	c := ssm.ShellCommand(profile, region, target)
@@ -233,7 +233,7 @@ func shellCmd(profile, region, target string) tea.Cmd {
 func startTunnelCmd(mgr *tunnelManager, profile, region, target, targetName, host, remotePort, localPort string) tea.Cmd {
 	return func() tea.Msg {
 		if !ssm.PluginAvailable() {
-			return errMsg{fmt.Errorf("session-manager-plugin introuvable : installez-le pour utiliser le port-forwarding")}
+			return errMsg{fmt.Errorf("session-manager-plugin not found: install it to use port-forwarding")}
 		}
 		ctx, cancel := context.WithCancel(context.Background())
 

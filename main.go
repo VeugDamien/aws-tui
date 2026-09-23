@@ -37,7 +37,7 @@ func main() {
 		case "check-update", "check-updates":
 			os.Exit(runCheckUpdate())
 		default:
-			fmt.Fprintf(os.Stderr, "commande inconnue: %q\n\n", os.Args[1])
+			fmt.Fprintf(os.Stderr, "unknown command: %q\n\n", os.Args[1])
 			printUsage()
 			os.Exit(2)
 		}
@@ -45,14 +45,14 @@ func main() {
 
 	// Pre-flight: the AWS CLI is required for login flows and SSM sessions.
 	if !ssm.CLIAvailable() {
-		fmt.Fprintln(os.Stderr, "Erreur: l'AWS CLI ('aws') est introuvable dans le PATH.")
-		fmt.Fprintln(os.Stderr, "Installez AWS CLI v2 puis réessayez.")
+		fmt.Fprintln(os.Stderr, "Error: the AWS CLI ('aws') was not found in PATH.")
+		fmt.Fprintln(os.Stderr, "Install AWS CLI v2 and try again.")
 		os.Exit(1)
 	}
 
 	p := tea.NewProgram(ui.New(), tea.WithAltScreen())
 	if _, err := p.Run(); err != nil {
-		fmt.Fprintf(os.Stderr, "Erreur fatale: %v\n", err)
+		fmt.Fprintf(os.Stderr, "Fatal error: %v\n", err)
 		os.Exit(1)
 	}
 }
@@ -61,15 +61,15 @@ func main() {
 func runCheckUpdate() int {
 	status, err := selfupdate.CheckUpdate(context.Background(), version)
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "Erreur: %v\n", err)
+		fmt.Fprintf(os.Stderr, "Error: %v\n", err)
 		return 1
 	}
 	if status.Available {
-		fmt.Printf("Une nouvelle version est disponible : %s (actuelle : %s)\n", status.LatestVersion, version)
-		fmt.Println("Lancez « aws-tui upgrade » pour mettre à jour.")
+		fmt.Printf("A new version is available: %s (current: %s)\n", status.LatestVersion, version)
+		fmt.Println("Run \"aws-tui upgrade\" to update.")
 		return 0
 	}
-	fmt.Printf("aws-tui est à jour (%s).\n", version)
+	fmt.Printf("aws-tui is up to date (%s).\n", version)
 	return 0
 }
 
@@ -81,10 +81,10 @@ func runUpgrade(args []string) int {
 		case "--force", "-f":
 			force = true
 		case "--help", "-h":
-			fmt.Println("Usage: aws-tui upgrade [--force]\n\n  --force  réinstalle même si déjà à jour.")
+			fmt.Println("Usage: aws-tui upgrade [--force]\n\n  --force  reinstall even if already up to date.")
 			return 0
 		default:
-			fmt.Fprintf(os.Stderr, "option inconnue: %q\n", a)
+			fmt.Fprintf(os.Stderr, "unknown option: %q\n", a)
 			return 2
 		}
 	}
@@ -94,25 +94,25 @@ func runUpgrade(args []string) int {
 		Logf:  func(f string, a ...any) { fmt.Printf("==> "+f+"\n", a...) },
 	})
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "Erreur: %v\n", err)
+		fmt.Fprintf(os.Stderr, "Error: %v\n", err)
 		return 1
 	}
 	if !res.Updated {
 		return 0
 	}
-	fmt.Printf("aws-tui a été mis à jour vers %s. Relancez la commande.\n", res.NewVersion)
+	fmt.Printf("aws-tui was updated to %s. Run the command again.\n", res.NewVersion)
 	return 0
 }
 
 func printUsage() {
-	fmt.Println(`aws-tui — interface terminal pour AWS (profils, EC2, ASG, Load Balancers, SSM).
+	fmt.Println(`aws-tui — terminal UI for AWS (profiles, EC2, ASG, Load Balancers, SSM).
 
 Usage:
-  aws-tui                Lance l'interface.
-  aws-tui upgrade        Met à jour aws-tui vers la dernière version (--force pour forcer).
-  aws-tui check-update   Vérifie si une nouvelle version est disponible.
-  aws-tui --version      Affiche la version.
-  aws-tui --help         Affiche cette aide.
+  aws-tui                Launch the interface.
+  aws-tui upgrade        Update aws-tui to the latest version (--force to force).
+  aws-tui check-update   Check whether a new version is available.
+  aws-tui --version      Print the version.
+  aws-tui --help         Show this help.
 
-Pré-requis: AWS CLI v2 et session-manager-plugin dans le PATH.`)
+Requirements: AWS CLI v2 and session-manager-plugin in PATH.`)
 }

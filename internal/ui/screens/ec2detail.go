@@ -101,9 +101,9 @@ func (d *EC2Detail) OpenCopyMenu(region, account string) {
 	i := d.Instance
 	candidates := []CopyField{
 		{"Instance ID", i.InstanceID},
-		{"Nom", i.Name},
-		{"IP privée", i.PrivateIP},
-		{"IP publique", i.PublicIP},
+		{"Name", i.Name},
+		{"Private IP", i.PrivateIP},
+		{"Public IP", i.PublicIP},
 		{"Type", i.Type},
 		{"AZ", i.AZ},
 		{"VPC", i.VPCID},
@@ -272,7 +272,7 @@ func (d *EC2Detail) View(spinner string) string {
 
 	out := title + "\n\n" + columns
 	if total > shown {
-		out += "\n" + detailMutedStyle.Render(fmt.Sprintf("↑/↓ défiler (%d/%d)", d.scroll+1, total))
+		out += "\n" + detailMutedStyle.Render(fmt.Sprintf("↑/↓ scroll (%d/%d)", d.scroll+1, total))
 	}
 	if d.copyOpen {
 		return title + "\n\n" + d.renderCopyMenu()
@@ -283,7 +283,7 @@ func (d *EC2Detail) View(spinner string) string {
 // renderCopyMenu renders the copy overlay: a bordered list of copyable fields.
 func (d *EC2Detail) renderCopyMenu() string {
 	var b strings.Builder
-	b.WriteString(detailCopyTitleStyle.Render(" Copier ") + "\n\n")
+	b.WriteString(detailCopyTitleStyle.Render(" Copy ") + "\n\n")
 
 	for i, f := range d.copyItems {
 		label := pad(f.Label, 13)
@@ -296,7 +296,7 @@ func (d *EC2Detail) renderCopyMenu() string {
 		}
 	}
 
-	b.WriteString("\n" + detailMutedStyle.Render("↑/↓ choisir · enter copier · esc fermer"))
+	b.WriteString("\n" + detailMutedStyle.Render("↑/↓ select · enter copy · esc close"))
 	return detailCopyBoxStyle.Render(b.String())
 }
 
@@ -368,42 +368,42 @@ func kv(label, value string) string {
 func (d *EC2Detail) renderGeneral(width int) string {
 	i := d.Instance
 	var b strings.Builder
-	b.WriteString(d.section("Informations générales", width))
-	b.WriteString(kv("État", i.State))
+	b.WriteString(d.section("General information", width))
+	b.WriteString(kv("State", i.State))
 	b.WriteString(kv("Type", i.Type))
 	b.WriteString(kv("AZ", i.AZ))
-	b.WriteString(kv("IP privée", i.PrivateIP))
-	b.WriteString(kv("IP publique", i.PublicIP))
+	b.WriteString(kv("Private IP", i.PrivateIP))
+	b.WriteString(kv("Public IP", i.PublicIP))
 	b.WriteString(kv("VPC", i.VPCID))
 	b.WriteString(kv("Subnet", i.SubnetID))
 	b.WriteString(kv("AMI", i.ImageID))
 	b.WriteString(kv("Architecture", i.Architecture))
-	b.WriteString(kv("Plateforme", i.Platform))
-	b.WriteString(kv("Clé SSH", i.KeyName))
-	b.WriteString(kv("Profil IAM", shortARN(i.IAMProfile)))
+	b.WriteString(kv("Platform", i.Platform))
+	b.WriteString(kv("SSH key", i.KeyName))
+	b.WriteString(kv("IAM profile", shortARN(i.IAMProfile)))
 	b.WriteString(kv("Monitoring", i.Monitoring))
-	b.WriteString(kv("Lancée le", i.LaunchTime))
+	b.WriteString(kv("Launched at", i.LaunchTime))
 	return b.String()
 }
 
 func (d *EC2Detail) renderSecurity(spinner string, width int) string {
 	var b strings.Builder
-	b.WriteString(d.section("Sécurité / réseau", width))
+	b.WriteString(d.section("Security / network", width))
 
 	switch d.SGState {
 	case BlockLoading:
-		b.WriteString(detailMutedStyle.Render(spinner+" Chargement des security groups…") + "\n")
+		b.WriteString(detailMutedStyle.Render(spinner+" Loading security groups…") + "\n")
 	case BlockError:
-		b.WriteString(detailErrStyle.Render("Erreur: "+errText(d.SGErr)) + "\n")
+		b.WriteString(detailErrStyle.Render("Error: "+errText(d.SGErr)) + "\n")
 	case BlockLoaded:
 		if len(d.SGs) == 0 {
-			b.WriteString(detailMutedStyle.Render("Aucun security group.") + "\n")
+			b.WriteString(detailMutedStyle.Render("No security group.") + "\n")
 		}
 		for _, sg := range d.SGs {
 			b.WriteString(detailOKStyle.Render("● "+sg.Name) + " " + detailMutedStyle.Render("("+sg.ID+")") + "\n")
-			b.WriteString(detailMutedStyle.Render("  Entrant:") + "\n")
+			b.WriteString(detailMutedStyle.Render("  Inbound:") + "\n")
 			b.WriteString(renderRules(sg.Inbound))
-			b.WriteString(detailMutedStyle.Render("  Sortant:") + "\n")
+			b.WriteString(detailMutedStyle.Render("  Outbound:") + "\n")
 			b.WriteString(renderRules(sg.Outbound))
 		}
 	}
@@ -412,7 +412,7 @@ func (d *EC2Detail) renderSecurity(spinner string, width int) string {
 
 func renderRules(rules []awsclient.SGRule) string {
 	if len(rules) == 0 {
-		return "    " + detailMutedStyle.Render("(aucune règle)") + "\n"
+		return "    " + detailMutedStyle.Render("(no rule)") + "\n"
 	}
 	var b strings.Builder
 	for _, r := range rules {
@@ -430,14 +430,14 @@ func (d *EC2Detail) renderMetricsBox(spinner string, width int) string {
 	}
 
 	var b strings.Builder
-	b.WriteString(detailMetricsTitleStyle.Render("Métriques") + "  " + d.windowSelector() + "\n")
+	b.WriteString(detailMetricsTitleStyle.Render("Metrics") + "  " + d.windowSelector() + "\n")
 	b.WriteString(detailMutedStyle.Render(d.metricsPeriodLabel()) + "\n\n")
 
 	switch d.MetricsState {
 	case BlockLoading:
-		b.WriteString(detailMutedStyle.Render(spinner + " Chargement…"))
+		b.WriteString(detailMutedStyle.Render(spinner + " Loading…"))
 	case BlockError:
-		b.WriteString(detailErrStyle.Render("Erreur:") + "\n" + detailErrStyle.Render(errText(d.MetricsErr)))
+		b.WriteString(detailErrStyle.Render("Error:") + "\n" + detailErrStyle.Render(errText(d.MetricsErr)))
 	case BlockLoaded:
 		win := d.Metrics.WindowMinutes
 		b.WriteString(renderMetric(d.Metrics.CPU, false, inner, win))
@@ -467,7 +467,7 @@ func (d *EC2Detail) renderTagsBox(width, maxLines int) string {
 	b.WriteString(detailMetricsTitleStyle.Render(fmt.Sprintf("Tags (%d)", len(tags))) + "\n\n")
 
 	if len(tags) == 0 {
-		b.WriteString(detailMutedStyle.Render("(aucun tag)"))
+		b.WriteString(detailMutedStyle.Render("(no tag)"))
 		return detailMetricsBoxStyle.Width(width - 2).Render(b.String())
 	}
 
@@ -494,7 +494,7 @@ func (d *EC2Detail) renderTagsBox(width, maxLines int) string {
 		b.WriteString(detailTagStyle.Render(pad(line, inner)) + "\n")
 	}
 	if overflow {
-		b.WriteString(detailMutedStyle.Render(fmt.Sprintf("+%d autres", len(tags)-len(shown))))
+		b.WriteString(detailMutedStyle.Render(fmt.Sprintf("+%d more", len(tags)-len(shown))))
 	}
 
 	return detailMetricsBoxStyle.Width(width - 2).Render(strings.TrimRight(b.String(), "\n"))
@@ -514,7 +514,7 @@ func (d *EC2Detail) windowSelector() string {
 	return strings.Join(parts, detailMutedStyle.Render("/"))
 }
 
-// metricsPeriodLabel renders e.g. "Période 1h · 1 pt/5min" for the selected window.
+// metricsPeriodLabel renders e.g. "Window 1h · 1 pt/5min" for the selected window.
 func (d *EC2Detail) metricsPeriodLabel() string {
 	win := d.MetricWindow()
 	// Period reflects the loaded data when available, else estimate from window.
@@ -529,13 +529,13 @@ func (d *EC2Detail) metricsPeriodLabel() string {
 			per = 60
 		}
 	}
-	return fmt.Sprintf("Période %s · 1 pt/%dmin · [m] changer", MetricWindowLabel(win), per)
+	return fmt.Sprintf("Window %s · 1 pt/%dmin · [m] change", MetricWindowLabel(win), per)
 }
 
 // renderMetric renders one metric: label, a wide sparkline, a time axis and stats.
 func renderMetric(s awsclient.MetricSeries, bytesUnit bool, inner, windowMin int) string {
 	if s.Label == "" {
-		return detailMutedStyle.Render("(indisponible)")
+		return detailMutedStyle.Render("(unavailable)")
 	}
 
 	sparkW := inner
@@ -558,7 +558,7 @@ func renderMetric(s awsclient.MetricSeries, bytesUnit bool, inner, windowMin int
 	b.WriteString(detailMetricLabelStyle.Render(s.Label) + "\n")
 	b.WriteString(detailSparkStyle.Render(spark) + "\n")
 	b.WriteString(detailAxisStyle.Render(axis) + "\n")
-	b.WriteString(detailMutedStyle.Render(fmt.Sprintf("cur %s · moy %s · max %s", latest, avg, max)))
+	b.WriteString(detailMutedStyle.Render(fmt.Sprintf("cur %s · avg %s · max %s", latest, avg, max)))
 	return b.String()
 }
 

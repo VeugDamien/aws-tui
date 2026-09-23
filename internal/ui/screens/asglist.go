@@ -23,11 +23,11 @@ var asgHeaders = []struct {
 	title string
 	width int
 }{
-	{"Nom", colASGNameW},
-	{"min/dés/max", colASGCapW},
+	{"Name", colASGNameW},
+	{"min/des/max", colASGCapW},
 	{"Instances", colASGInstW},
-	{"Lancement", colASGLaunchW},
-	{"Statut", colASGStatusW},
+	{"Launch", colASGLaunchW},
+	{"Status", colASGStatusW},
 }
 
 var (

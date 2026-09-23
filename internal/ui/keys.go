@@ -43,51 +43,51 @@ func defaultKeyMap() keyMap {
 	return keyMap{
 		Up: key.NewBinding(
 			key.WithKeys("up", "k"),
-			key.WithHelp("↑/k", "haut"),
+			key.WithHelp("↑/k", "up"),
 		),
 		Down: key.NewBinding(
 			key.WithKeys("down", "j"),
-			key.WithHelp("↓/j", "bas"),
+			key.WithHelp("↓/j", "down"),
 		),
 		Enter: key.NewBinding(
 			key.WithKeys("enter"),
-			key.WithHelp("enter", "valider"),
+			key.WithHelp("enter", "confirm"),
 		),
 		Back: key.NewBinding(
 			key.WithKeys("esc"),
-			key.WithHelp("esc", "retour"),
+			key.WithHelp("esc", "back"),
 		),
 		Quit: key.NewBinding(
 			key.WithKeys("q", "ctrl+c"),
-			key.WithHelp("q", "quitter"),
+			key.WithHelp("q", "quit"),
 		),
 		Help: key.NewBinding(
 			key.WithKeys("?"),
-			key.WithHelp("?", "aide"),
+			key.WithHelp("?", "help"),
 		),
 		Refresh: key.NewBinding(
 			key.WithKeys("r"),
-			key.WithHelp("r", "rafraîchir"),
+			key.WithHelp("r", "refresh"),
 		),
 		Filter: key.NewBinding(
 			key.WithKeys("/"),
-			key.WithHelp("/", "filtrer"),
+			key.WithHelp("/", "filter"),
 		),
 		ScrollLeft: key.NewBinding(
 			key.WithKeys("left", "h"),
-			key.WithHelp("←/h", "défiler gauche"),
+			key.WithHelp("←/h", "scroll left"),
 		),
 		ScrollRight: key.NewBinding(
 			key.WithKeys("right", "l"),
-			key.WithHelp("→/l", "défiler droite"),
+			key.WithHelp("→/l", "scroll right"),
 		),
 		Yank: key.NewBinding(
 			key.WithKeys("y"),
-			key.WithHelp("y", "copier"),
+			key.WithHelp("y", "copy"),
 		),
 		YankMenu: key.NewBinding(
 			key.WithKeys("Y"),
-			key.WithHelp("Y", "copier (menu)"),
+			key.WithHelp("Y", "copy (menu)"),
 		),
 		EC2: key.NewBinding(
 			key.WithKeys("e"),
@@ -103,11 +103,11 @@ func defaultKeyMap() keyMap {
 		),
 		Regions: key.NewBinding(
 			key.WithKeys("g"),
-			key.WithHelp("g", "région"),
+			key.WithHelp("g", "region"),
 		),
 		Profiles: key.NewBinding(
 			key.WithKeys("p"),
-			key.WithHelp("p", "profils"),
+			key.WithHelp("p", "profiles"),
 		),
 		Logout: key.NewBinding(
 			key.WithKeys("L"),
@@ -123,11 +123,11 @@ func defaultKeyMap() keyMap {
 		),
 		StopFwd: key.NewBinding(
 			key.WithKeys("x"),
-			key.WithHelp("x", "arrêter"),
+			key.WithHelp("x", "stop"),
 		),
 		StopAllFwd: key.NewBinding(
 			key.WithKeys("X"),
-			key.WithHelp("X", "tout arrêter"),
+			key.WithHelp("X", "stop all"),
 		),
 		Tunnels: key.NewBinding(
 			key.WithKeys("t"),
@@ -135,11 +135,11 @@ func defaultKeyMap() keyMap {
 		),
 		ToggleHost: key.NewBinding(
 			key.WithKeys("tab"),
-			key.WithHelp("tab", "hôte distant"),
+			key.WithHelp("tab", "remote host"),
 		),
 		MetricWindow: key.NewBinding(
 			key.WithKeys("m"),
-			key.WithHelp("m", "fenêtre métriques"),
+			key.WithHelp("m", "metrics window"),
 		),
 	}
 }

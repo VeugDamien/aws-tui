@@ -78,20 +78,20 @@ func Upgrade(ctx context.Context, current string, opts Options) (*Result, error)
 	// Guard: package-manager-managed installs must be updated by that manager.
 	if mgr := managedBy(exe); mgr != "" {
 		return nil, fmt.Errorf(
-			"aws-tui semble installé via %s (%s).\n"+
-				"Mettez-le à jour avec ce gestionnaire (ex. « %s »),\n"+
-				"ou réinstallez via le script d'installation pour activer l'auto-mise à jour.",
+			"aws-tui appears to be installed via %s (%s).\n"+
+				"Update it with that manager (e.g. \"%s\"),\n"+
+				"or reinstall via the install script to enable auto-update.",
 			mgr, exe, upgradeHint(mgr))
 	}
 
-	opts.logf("Recherche de la dernière version…")
+	opts.logf("Looking up the latest version…")
 	status, err := CheckUpdate(ctx, current)
 	if err != nil {
 		return nil, err
 	}
 
 	if !status.Available && !opts.Force {
-		opts.logf("Déjà à jour (%s).", current)
+		opts.logf("Already up to date (%s).", current)
 		return &Result{PreviousVersion: current, NewVersion: current, Updated: false}, nil
 	}
 
@@ -101,31 +101,31 @@ func Upgrade(ctx context.Context, current string, opts Options) (*Result, error)
 		return nil, err
 	}
 
-	opts.logf("Téléchargement de %s…", asset.Name)
+	opts.logf("Downloading %s…", asset.Name)
 	archivePath, cleanup, err := downloadToTemp(ctx, asset)
 	if err != nil {
 		return nil, err
 	}
 	defer cleanup()
 
-	opts.logf("Vérification du checksum SHA-256…")
+	opts.logf("Verifying SHA-256 checksum…")
 	if err := verifyChecksum(ctx, status.Release, asset.Name, archivePath); err != nil {
 		return nil, err
 	}
 
-	opts.logf("Extraction…")
+	opts.logf("Extracting…")
 	newBin, err := extractBinary(archivePath)
 	if err != nil {
 		return nil, err
 	}
 	defer os.Remove(newBin)
 
-	opts.logf("Installation de %s → %s…", status.LatestVersion, exe)
+	opts.logf("Installing %s → %s…", status.LatestVersion, exe)
 	if err := replaceExecutable(exe, newBin); err != nil {
 		return nil, err
 	}
 
-	opts.logf("Mise à jour terminée : %s → %s", current, status.LatestVersion)
+	opts.logf("Update complete: %s → %s", current, status.LatestVersion)
 	return &Result{PreviousVersion: current, NewVersion: status.LatestVersion, Updated: true}, nil
 }
 
@@ -133,7 +133,7 @@ func Upgrade(ctx context.Context, current string, opts Options) (*Result, error)
 func executablePath() (string, error) {
 	exe, err := os.Executable()
 	if err != nil {
-		return "", fmt.Errorf("chemin de l'exécutable introuvable: %w", err)
+		return "", fmt.Errorf("executable path not found: %w", err)
 	}
 	if resolved, err := filepath.EvalSymlinks(exe); err == nil {
 		exe = resolved
@@ -151,11 +151,11 @@ func managedBy(exe string) string {
 		return "Homebrew"
 	case strings.HasPrefix(p, "/usr/bin/"), strings.HasPrefix(p, "/usr/local/Cellar/"):
 		// /usr/bin is where the .deb/.rpm packages install.
-		return "un paquet système (apt/dnf/rpm)"
+		return "a system package (apt/dnf/rpm)"
 	case strings.Contains(strings.ToLower(p), "/scoop/"):
 		return "Scoop"
 	case strings.Contains(p, "Program Files"):
-		return "un installeur Windows"
+		return "a Windows installer"
 	}
 	return ""
 }
@@ -165,11 +165,11 @@ func upgradeHint(mgr string) string {
 	switch {
 	case strings.Contains(mgr, "Homebrew"):
 		return "brew upgrade aws-tui"
-	case strings.Contains(mgr, "paquet système"):
+	case strings.Contains(mgr, "system package"):
 		return "sudo apt upgrade aws-tui / sudo dnf upgrade aws-tui"
 	case strings.Contains(mgr, "Scoop"):
 		return "scoop update aws-tui"
 	default:
-		return "votre gestionnaire de paquets"
+		return "your package manager"
 	}
 }

@@ -20,13 +20,13 @@ const (
 func (s tunnelState) String() string {
 	switch s {
 	case tunnelStarting:
-		return "démarrage"
+		return "starting"
 	case tunnelActive:
-		return "actif"
+		return "active"
 	case tunnelStopped:
-		return "arrêté"
+		return "stopped"
 	case tunnelFailed:
-		return "erreur"
+		return "error"
 	default:
 		return "?"
 	}

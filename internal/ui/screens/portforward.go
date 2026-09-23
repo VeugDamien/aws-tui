@@ -113,13 +113,13 @@ func (f *PortForwardForm) Values() (host, remotePort, localPort string, err erro
 	host = strings.TrimSpace(f.inputs[fieldHost].Value())
 
 	if !validPort(remotePort) {
-		return "", "", "", fmt.Errorf("port distant invalide: %q", remotePort)
+		return "", "", "", fmt.Errorf("invalid remote port: %q", remotePort)
 	}
 	if !validPort(localPort) {
-		return "", "", "", fmt.Errorf("port local invalide: %q", localPort)
+		return "", "", "", fmt.Errorf("invalid local port: %q", localPort)
 	}
 	if f.RemoteHost && host == "" {
-		return "", "", "", fmt.Errorf("hôte distant requis en mode remote host")
+		return "", "", "", fmt.Errorf("remote host required in remote host mode")
 	}
 	if !f.RemoteHost {
 		host = ""
@@ -130,10 +130,10 @@ func (f *PortForwardForm) Values() (host, remotePort, localPort string, err erro
 // View renders the form.
 func (f *PortForwardForm) View() string {
 	var b strings.Builder
-	fmt.Fprintf(&b, "Port distant : %s\n", f.inputs[fieldRemotePort].View())
-	fmt.Fprintf(&b, "Port local   : %s\n", f.inputs[fieldLocalPort].View())
+	fmt.Fprintf(&b, "Remote port : %s\n", f.inputs[fieldRemotePort].View())
+	fmt.Fprintf(&b, "Local port  : %s\n", f.inputs[fieldLocalPort].View())
 	if f.RemoteHost {
-		fmt.Fprintf(&b, "Hôte distant : %s\n", f.inputs[fieldHost].View())
+		fmt.Fprintf(&b, "Remote host : %s\n", f.inputs[fieldHost].View())
 	}
 	return b.String()
 }

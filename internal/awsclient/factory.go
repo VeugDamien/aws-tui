@@ -22,7 +22,7 @@ func LoadConfig(ctx context.Context, profile, region string) (aws.Config, error)
 
 	cfg, err := config.LoadDefaultConfig(ctx, opts...)
 	if err != nil {
-		return aws.Config{}, fmt.Errorf("chargement de la configuration AWS (profil %q): %w", profile, err)
+		return aws.Config{}, fmt.Errorf("loading AWS configuration (profile %q): %w", profile, err)
 	}
 	return cfg, nil
 }

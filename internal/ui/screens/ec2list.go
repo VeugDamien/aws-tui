@@ -248,7 +248,7 @@ func (e *EC2Table) View() string {
 	}
 
 	if e.CanScrollHorizontally() {
-		b.WriteString("\n" + ec2ScrollHintStyle.Render("← / → défiler horizontalement"))
+		b.WriteString("\n" + ec2ScrollHintStyle.Render("← / → scroll horizontally"))
 	}
 	return b.String()
 }

@@ -65,7 +65,7 @@ func (d *ASGDetail) ScrollDown(n int) { d.scroll += n }
 func (d *ASGDetail) View(spinner string) string {
 	g := d.Group
 	title := detailTitleStyle.Render(" "+g.Name+" ") + "  " +
-		detailMutedStyle.Render(fmt.Sprintf("%d/%d/%d (min/dés/max)", g.MinSize, g.DesiredCapacity, g.MaxSize))
+		detailMutedStyle.Render(fmt.Sprintf("%d/%d/%d (min/desired/max)", g.MinSize, g.DesiredCapacity, g.MaxSize))
 
 	var b strings.Builder
 	width := d.width
@@ -84,7 +84,7 @@ func (d *ASGDetail) View(spinner string) string {
 	body, total, shown := d.applyScroll(b.String())
 	out := title + "\n\n" + body
 	if total > shown {
-		out += "\n" + detailMutedStyle.Render(fmt.Sprintf("↑/↓ défiler (%d/%d)", d.scroll+1, total))
+		out += "\n" + detailMutedStyle.Render(fmt.Sprintf("↑/↓ scroll (%d/%d)", d.scroll+1, total))
 	}
 	return out
 }
@@ -111,17 +111,17 @@ func (d *ASGDetail) applyScroll(s string) (string, int, int) {
 func (d *ASGDetail) renderCapacities(width int) string {
 	g := d.Group
 	var b strings.Builder
-	b.WriteString(detailSectionStyle.Width(width).Render("Capacités & configuration") + "\n")
-	b.WriteString(kv("Désirée", fmt.Sprintf("%d", g.DesiredCapacity)))
+	b.WriteString(detailSectionStyle.Width(width).Render("Capacity & configuration") + "\n")
+	b.WriteString(kv("Desired", fmt.Sprintf("%d", g.DesiredCapacity)))
 	b.WriteString(kv("Min / Max", fmt.Sprintf("%d / %d", g.MinSize, g.MaxSize)))
 	b.WriteString(kv("Health check", g.HealthCheckType))
-	b.WriteString(kv("Lancement", launchLabel(g)))
+	b.WriteString(kv("Launch", launchLabel(g)))
 	b.WriteString(kv("Zones", strings.Join(g.AZs, ", ")))
 	b.WriteString(kv("Subnets", g.VPCZoneID))
 	if g.Status != "" {
-		b.WriteString(kv("Statut", g.Status))
+		b.WriteString(kv("Status", g.Status))
 	}
-	b.WriteString(kv("Créé le", g.CreatedTime))
+	b.WriteString(kv("Created at", g.CreatedTime))
 	return b.String()
 }
 
@@ -135,11 +135,11 @@ func launchLabel(g awsclient.AutoScalingGroup) string {
 func (d *ASGDetail) renderInstances(width int) string {
 	g := d.Group
 	var b strings.Builder
-	title := fmt.Sprintf("Instances (%d/%d saines)", g.HealthyCount(), g.InstanceCount())
+	title := fmt.Sprintf("Instances (%d/%d healthy)", g.HealthyCount(), g.InstanceCount())
 	b.WriteString(detailSectionStyle.Width(width).Render(title) + "\n")
 
 	if len(g.Instances) == 0 {
-		b.WriteString(detailMutedStyle.Render("Aucune instance.") + "\n")
+		b.WriteString(detailMutedStyle.Render("No instance.") + "\n")
 		return b.String()
 	}
 	for _, inst := range g.Instances {
@@ -169,12 +169,12 @@ func (d *ASGDetail) renderTargetGroups(spinner string, width int) string {
 
 	switch d.TGState {
 	case BlockLoading:
-		b.WriteString(detailMutedStyle.Render(spinner+" Chargement des target groups…") + "\n")
+		b.WriteString(detailMutedStyle.Render(spinner+" Loading target groups…") + "\n")
 	case BlockError:
-		b.WriteString(detailErrStyle.Render("Erreur: "+errText(d.TGErr)) + "\n")
+		b.WriteString(detailErrStyle.Render("Error: "+errText(d.TGErr)) + "\n")
 	case BlockLoaded:
 		if len(d.TGs) == 0 {
-			b.WriteString(detailMutedStyle.Render("Aucun target group.") + "\n")
+			b.WriteString(detailMutedStyle.Render("No target group.") + "\n")
 		}
 		for _, tg := range d.TGs {
 			b.WriteString(renderTGSummary(tg) + "\n")
@@ -186,7 +186,7 @@ func (d *ASGDetail) renderTargetGroups(spinner string, width int) string {
 // renderTGSummary renders one target group line with a health summary.
 func renderTGSummary(tg awsclient.TargetGroup) string {
 	healthy, total := tg.HealthyCount(), tg.TotalCount()
-	summary := fmt.Sprintf("%d/%d saines", healthy, total)
+	summary := fmt.Sprintf("%d/%d healthy", healthy, total)
 	style := asgHealthyStyle
 	if healthy < total {
 		style = asgUnhealthyStyle
@@ -204,16 +204,16 @@ func renderTGSummary(tg awsclient.TargetGroup) string {
 
 func (d *ASGDetail) renderActivities(spinner string, width int) string {
 	var b strings.Builder
-	b.WriteString(detailSectionStyle.Width(width).Render("Activités récentes") + "\n")
+	b.WriteString(detailSectionStyle.Width(width).Render("Recent activities") + "\n")
 
 	switch d.ActState {
 	case BlockLoading:
-		b.WriteString(detailMutedStyle.Render(spinner+" Chargement des activités…") + "\n")
+		b.WriteString(detailMutedStyle.Render(spinner+" Loading activities…") + "\n")
 	case BlockError:
-		b.WriteString(detailErrStyle.Render("Erreur: "+errText(d.ActErr)) + "\n")
+		b.WriteString(detailErrStyle.Render("Error: "+errText(d.ActErr)) + "\n")
 	case BlockLoaded:
 		if len(d.Acts) == 0 {
-			b.WriteString(detailMutedStyle.Render("Aucune activité récente.") + "\n")
+			b.WriteString(detailMutedStyle.Render("No recent activity.") + "\n")
 		}
 		for _, a := range d.Acts {
 			status := a.StatusCode

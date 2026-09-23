@@ -11,7 +11,7 @@ import (
 // and status bar anchored to the bottom.
 func (m AppModel) View() string {
 	if m.width == 0 || m.height == 0 {
-		return "Initialisation…"
+		return "Initializing…"
 	}
 
 	var body string
@@ -50,7 +50,7 @@ func (m AppModel) View() string {
 		top = append(top, "", fmt.Sprintf("%s %s", m.spinner.View(), m.loadingMsg))
 	}
 	if m.err != nil {
-		top = append(top, "", errorBoxStyle.Render("Erreur: "+m.err.Error()))
+		top = append(top, "", errorBoxStyle.Render("Error: "+m.err.Error()))
 	}
 
 	// Bottom block: status bar (if any) + footer, anchored to the bottom edge.
@@ -121,7 +121,7 @@ func (m AppModel) configBar() string {
 	if profile == "" {
 		profile = "—"
 	}
-	account := warnStyle.Render("non connecté")
+	account := warnStyle.Render("not connected")
 	if m.identity != nil {
 		if m.accountAlias != "" {
 			// Friendly alias first, account number in parentheses.
@@ -133,9 +133,9 @@ func (m AppModel) configBar() string {
 	}
 
 	segs := []string{
-		configKeyStyle.Render("[p]") + " profil: " + configValStyle.Render(profile),
-		configKeyStyle.Render("[g]") + " région: " + configValStyle.Render(m.activeRegion),
-		"compte: " + account,
+		configKeyStyle.Render("[p]") + " profile: " + configValStyle.Render(profile),
+		configKeyStyle.Render("[g]") + " region: " + configValStyle.Render(m.activeRegion),
+		"account: " + account,
 	}
 	bar := strings.Join(segs, "   │   ")
 	return configBarStyle.Render(bar)
@@ -149,38 +149,38 @@ func (m AppModel) footer() string {
 	var hints string
 	switch m.screen {
 	case ScreenProfiles:
-		hints = "↑/↓ naviguer · / filtrer · y copier nom · enter sélectionner · esc annuler · q quitter"
+		hints = "↑/↓ navigate · / filter · y copy name · enter select · esc cancel · q quit"
 	case ScreenActions:
-		hints = "↑/↓ naviguer · enter valider   │   p profil · g région · L logout   │   ? aide · q quitter"
+		hints = "↑/↓ navigate · enter confirm   │   p profile · g region · L logout   │   ? help · q quit"
 	case ScreenRegions:
-		hints = "↑/↓ naviguer · / filtrer · enter choisir · esc annuler"
+		hints = "↑/↓ navigate · / filter · enter select · esc cancel"
 	case ScreenEC2:
-		hints = "↑/↓ · ←/→ défiler · enter détails · / filtrer · y copier ID · r rafraîchir · s shell · f port-forward · t tunnels · esc retour"
+		hints = "↑/↓ · ←/→ scroll · enter details · / filter · y copy ID · r refresh · s shell · f port-forward · t tunnels · esc back"
 	case ScreenASG:
-		hints = "↑/↓ naviguer · enter détails · / filtrer · y copier nom · r rafraîchir · esc retour"
+		hints = "↑/↓ navigate · enter details · / filter · y copy name · r refresh · esc back"
 	case ScreenASGDetail:
-		hints = "↑/↓ défiler · y copier nom · r rafraîchir · esc retour"
+		hints = "↑/↓ scroll · y copy name · r refresh · esc back"
 	case ScreenELB:
-		hints = "↑/↓ · ←/→ défiler · enter détails · / filtrer · y copier DNS · r rafraîchir · esc retour"
+		hints = "↑/↓ · ←/→ scroll · enter details · / filter · y copy DNS · r refresh · esc back"
 	case ScreenELBDetail:
-		hints = "↑/↓ défiler · y copier DNS · r rafraîchir · esc retour"
+		hints = "↑/↓ scroll · y copy DNS · r refresh · esc back"
 	case ScreenEC2Detail:
 		if m.ec2Detail.CopyMenuOpen() {
-			hints = "↑/↓ choisir · enter copier · esc fermer"
+			hints = "↑/↓ select · enter copy · esc close"
 		} else {
-			hints = "↑/↓ défiler · y copier ID · Y copier… · s session · f port-forward · m métriques · r rafraîchir · esc retour"
+			hints = "↑/↓ scroll · y copy ID · Y copy… · s session · f port-forward · m metrics · r refresh · esc back"
 		}
 	case ScreenPortForwardForm:
-		hints = "↑/↓ champ · tab hôte distant · enter lancer · esc annuler"
+		hints = "↑/↓ field · tab remote host · enter start · esc cancel"
 	case ScreenTunnels:
-		hints = "↑/↓ naviguer · x arrêter · X tout arrêter · esc retour"
+		hints = "↑/↓ navigate · x stop · X stop all · esc back"
 	}
 	return helpStyle.Render(hints)
 }
 
 func (m AppModel) viewProfiles() string {
 	if len(m.profiles) == 0 && !m.loading {
-		return warnStyle.Render("Aucun profil trouvé dans ~/.aws/config.")
+		return warnStyle.Render("No profile found in ~/.aws/config.")
 	}
 	return m.profileList.View()
 }
@@ -203,7 +203,7 @@ func (m AppModel) viewActions() string {
 	}
 
 	if m.identity != nil {
-		b.WriteString("\n" + labelStyle.Render("Identité") + subtitleStyle.Render(m.identity.Arn))
+		b.WriteString("\n" + labelStyle.Render("Identity") + subtitleStyle.Render(m.identity.Arn))
 	}
 	return b.String()
 }
@@ -215,7 +215,7 @@ func (m AppModel) viewRegions() string {
 func (m AppModel) viewEC2() string {
 	var b strings.Builder
 
-	header := fmt.Sprintf("Instances EC2 — %d/%d", m.ec2.Count(), m.ec2.TotalCount())
+	header := fmt.Sprintf("EC2 instances — %d/%d", m.ec2.Count(), m.ec2.TotalCount())
 	b.WriteString(subtitleStyle.Render(header) + "\n")
 
 	if m.ec2.Filtering || m.ec2.Filter != "" {
@@ -223,13 +223,13 @@ func (m AppModel) viewEC2() string {
 		if m.ec2.Filtering {
 			cursor = "█"
 		}
-		b.WriteString(fmt.Sprintf("Filtre: %s%s\n", m.ec2.Filter, cursor))
+		b.WriteString(fmt.Sprintf("Filter: %s%s\n", m.ec2.Filter, cursor))
 	}
 
 	b.WriteString(m.ec2.View())
 
 	if m.ec2.TotalCount() == 0 && !m.loading {
-		b.WriteString("\n" + warnStyle.Render("Aucune instance (ou accès refusé). 'r' pour réessayer."))
+		b.WriteString("\n" + warnStyle.Render("No instance (or access denied). Press 'r' to retry."))
 	}
 	return b.String()
 }
@@ -245,13 +245,13 @@ func (m AppModel) viewASG() string {
 		if m.asg.Filtering {
 			cursor = "█"
 		}
-		b.WriteString(fmt.Sprintf("Filtre: %s%s\n", m.asg.Filter, cursor))
+		b.WriteString(fmt.Sprintf("Filter: %s%s\n", m.asg.Filter, cursor))
 	}
 
 	b.WriteString(m.asg.View())
 
 	if m.asg.TotalCount() == 0 && !m.loading {
-		b.WriteString("\n" + warnStyle.Render("Aucun Auto Scaling Group (ou accès refusé). 'r' pour réessayer."))
+		b.WriteString("\n" + warnStyle.Render("No Auto Scaling Group (or access denied). Press 'r' to retry."))
 	}
 	return b.String()
 }
@@ -267,13 +267,13 @@ func (m AppModel) viewELB() string {
 		if m.elb.Filtering {
 			cursor = "█"
 		}
-		b.WriteString(fmt.Sprintf("Filtre: %s%s\n", m.elb.Filter, cursor))
+		b.WriteString(fmt.Sprintf("Filter: %s%s\n", m.elb.Filter, cursor))
 	}
 
 	b.WriteString(m.elb.View())
 
 	if m.elb.TotalCount() == 0 && !m.loading {
-		b.WriteString("\n" + warnStyle.Render("Aucun Load Balancer (ou accès refusé). 'r' pour réessayer."))
+		b.WriteString("\n" + warnStyle.Render("No Load Balancer (or access denied). Press 'r' to retry."))
 	}
 	return b.String()
 }
@@ -281,9 +281,9 @@ func (m AppModel) viewELB() string {
 func (m AppModel) viewPFForm() string {
 	var b strings.Builder
 
-	mode := "vers un port de l'instance"
+	mode := "to an instance port"
 	if m.pfForm.RemoteHost {
-		mode = "vers un hôte distant (bastion)"
+		mode = "to a remote host (bastion)"
 	}
 	tgt := m.pfForm.Target
 	if m.pfForm.TargetName != "" {
@@ -291,7 +291,7 @@ func (m AppModel) viewPFForm() string {
 	}
 
 	b.WriteString(subtitleStyle.Render("Port-forward "+mode) + "\n")
-	b.WriteString(labelStyle.Render("Cible") + tgt + "\n\n")
+	b.WriteString(labelStyle.Render("Target") + tgt + "\n\n")
 	b.WriteString(m.pfForm.View())
 	return panelStyle.Render(b.String())
 }
@@ -299,7 +299,7 @@ func (m AppModel) viewPFForm() string {
 func (m AppModel) viewTunnels() string {
 	tunnels := m.tunnels.list()
 	if len(tunnels) == 0 {
-		return warnStyle.Render("Aucun tunnel. Depuis la liste EC2, sélectionnez une instance et appuyez sur 'f'.")
+		return warnStyle.Render("No tunnel. From the EC2 list, select an instance and press 'f'.")
 	}
 
 	var b strings.Builder
@@ -314,13 +314,13 @@ func (m AppModel) viewTunnels() string {
 		var state string
 		switch t.State {
 		case tunnelActive:
-			state = identityStyle.Render("● actif   ")
+			state = identityStyle.Render("● active  ")
 		case tunnelStarting:
-			state = subtitleStyle.Render("◌ démarrage")
+			state = subtitleStyle.Render("◌ starting ")
 		case tunnelStopped:
-			state = subtitleStyle.Render("○ arrêté  ")
+			state = subtitleStyle.Render("○ stopped ")
 		case tunnelFailed:
-			state = errorStyle.Render("✕ erreur  ")
+			state = errorStyle.Render("✕ error   ")
 		}
 
 		line := fmt.Sprintf("%s#%-2d %s  %s", cursor, t.ID, state, t.Summary())

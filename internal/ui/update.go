@@ -64,7 +64,7 @@ func (m AppModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		m.accountAlias = "" // reset; resolved asynchronously below
 		m.awsCfg = msg.cfg
 		m.err = nil
-		clearCmd := m.setStatus("Connecté.")
+		clearCmd := m.setStatus("Connected.")
 		// Resolve the account alias in the background (non-fatal if denied).
 		aliasCmd := accountAliasCmd(msg.cfg, msg.identity.Account)
 		// Persist the now-connected profile as the last used one.
@@ -76,7 +76,7 @@ func (m AppModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			m.ec2 = screens.NewEC2Table(m.contentWidth(), m.ec2ContentHeight())
 			m.screen = ScreenEC2
 			m.loading = true
-			m.loadingMsg = "Chargement des instances EC2…"
+			m.loadingMsg = "Loading EC2 instances…"
 			return m, tea.Batch(listInstancesCmd(&m), aliasCmd, saveCmd, clearCmd, m.spinner.Tick)
 		}
 		m.screen = dest
@@ -91,18 +91,18 @@ func (m AppModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 	case authRequiredMsg:
 		m.loading = true
-		m.loadingMsg = fmt.Sprintf("Authentification du profil %q…", msg.profile.Name)
+		m.loadingMsg = fmt.Sprintf("Authenticating profile %q…", msg.profile.Name)
 		return m, loginCmd(msg.profile)
 
 	case loginDoneMsg:
 		if msg.err != nil {
 			m.loading = false
-			m.err = fmt.Errorf("connexion échouée: %w", msg.err)
+			m.err = fmt.Errorf("login failed: %w", msg.err)
 			return m, nil
 		}
 		// Retry identity after a successful login/logout.
 		m.loading = true
-		m.loadingMsg = "Vérification de l'identité…"
+		m.loadingMsg = "Verifying identity…"
 		return m, whoamiCmd(m.currentProfile(), m.activeRegion)
 
 	case instancesLoadedMsg:
@@ -203,16 +203,16 @@ func (m AppModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 	case shellFinishedMsg:
 		if msg.err != nil {
-			m.err = fmt.Errorf("session SSM terminée avec erreur: %w", msg.err)
+			m.err = fmt.Errorf("SSM session ended with error: %w", msg.err)
 			return m, nil
 		}
-		return m, m.setStatus("Session SSM terminée.")
+		return m, m.setStatus("SSM session ended.")
 
 	case tunnelStartedMsg:
 		m.loading = false
 		m.loadingMsg = ""
 		m = m.returnFromPF()
-		clearCmd := m.setStatus(fmt.Sprintf("Tunnel #%d démarré : %s", msg.id, msg.summary))
+		clearCmd := m.setStatus(fmt.Sprintf("Tunnel #%d started: %s", msg.id, msg.summary))
 		// Watch this tunnel for exit without blocking the UI.
 		return m, tea.Batch(waitTunnelCmd(m.tunnels, msg.id), clearCmd)
 
@@ -221,11 +221,11 @@ func (m AppModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		if msg.err != nil && !m.tunnels.wasStopRequested(msg.id) {
 			// Unexpected exit (process died on its own): mark as failed.
 			m.tunnels.setState(msg.id, tunnelFailed, msg.err)
-			cmd = m.setStatus(fmt.Sprintf("Tunnel #%d en erreur.", msg.id))
+			cmd = m.setStatus(fmt.Sprintf("Tunnel #%d failed.", msg.id))
 		} else {
 			// Clean exit or user-requested stop (signal: terminated).
 			m.tunnels.setState(msg.id, tunnelStopped, nil)
-			cmd = m.setStatus(fmt.Sprintf("Tunnel #%d arrêté.", msg.id))
+			cmd = m.setStatus(fmt.Sprintf("Tunnel #%d stopped.", msg.id))
 		}
 		m.clampTunnelCursor()
 		return m, cmd
@@ -239,11 +239,11 @@ func (m AppModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 	case clipboardMsg:
 		if msg.err != nil {
-			m.err = fmt.Errorf("copie impossible: %w", msg.err)
+			m.err = fmt.Errorf("copy failed: %w", msg.err)
 			return m, nil
 		}
 		m.err = nil
-		return m, m.setStatus(fmt.Sprintf("Copié (%s) : %s", msg.label, truncate(msg.value, 60)))
+		return m, m.setStatus(fmt.Sprintf("Copied (%s): %s", msg.label, truncate(msg.value, 60)))
 
 	case errMsg:
 		m.loading = false
@@ -333,7 +333,7 @@ func (m AppModel) handleKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		case key.Matches(msg, m.keys.Logout):
 			p := m.currentProfile()
 			m.loading = true
-			m.loadingMsg = "Déconnexion…"
+			m.loadingMsg = "Logging out…"
 			m.identity = nil
 			m.accountAlias = ""
 			m.instances = nil
@@ -424,7 +424,7 @@ func (m AppModel) updateProfiles(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		return m, nil
 	case key.Matches(msg, m.keys.Yank):
 		if p, ok := m.profileList.SelectedProfile(); ok {
-			return m, copyCmd("profil", p.Name)
+			return m, copyCmd("profile", p.Name)
 		}
 		return m, nil
 	case key.Matches(msg, m.keys.Back):
@@ -470,7 +470,7 @@ func (m AppModel) connectToProfile(p awsconfig.Profile) (tea.Model, tea.Cmd) {
 	m.asgs = nil
 	m.lbs = nil
 	m.loading = true
-	m.loadingMsg = fmt.Sprintf("Connexion au profil %q…", p.Name)
+	m.loadingMsg = fmt.Sprintf("Connecting to profile %q…", p.Name)
 	return m, tea.Batch(whoamiCmd(p, m.activeRegion), m.spinner.Tick)
 }
 
@@ -512,10 +512,10 @@ type actionItem struct {
 // actionItems returns the ordered entries of the actions menu.
 func (m AppModel) actionItems() []actionItem {
 	return []actionItem{
-		{key: "e", label: "Lister les instances EC2", run: (AppModel).enterEC2},
+		{key: "e", label: "List EC2 instances", run: (AppModel).enterEC2},
 		{key: "a", label: "Auto Scaling Groups", run: (AppModel).enterASG},
 		{key: "b", label: "Load Balancers (ALB/NLB)", run: (AppModel).enterELB},
-		{key: "t", label: "Tunnels actifs (port-forward)", run: (AppModel).enterTunnels},
+		{key: "t", label: "Active tunnels (port-forward)", run: (AppModel).enterTunnels},
 	}
 }
 
@@ -556,7 +556,7 @@ func (m AppModel) updateActions(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 // enterEC2 opens the EC2 list screen, loading instances if none are cached.
 func (m AppModel) enterEC2() (tea.Model, tea.Cmd) {
 	if m.identity == nil {
-		m.err = fmt.Errorf("non connecté : choisissez un profil avec 'p'")
+		m.err = fmt.Errorf("not connected: choose a profile with 'p'")
 		return m, nil
 	}
 	// Build a fresh, focused, styled table (preserving any loaded data).
@@ -566,7 +566,7 @@ func (m AppModel) enterEC2() (tea.Model, tea.Cmd) {
 	m.screen = ScreenEC2
 	if m.ec2.TotalCount() == 0 {
 		m.loading = true
-		m.loadingMsg = "Chargement des instances EC2…"
+		m.loadingMsg = "Loading EC2 instances…"
 		return m, tea.Batch(listInstancesCmd(&m), m.spinner.Tick)
 	}
 	return m, nil
@@ -583,7 +583,7 @@ func (m AppModel) enterTunnels() (tea.Model, tea.Cmd) {
 // enterASG opens the Auto Scaling Groups list, loading them if none are cached.
 func (m AppModel) enterASG() (tea.Model, tea.Cmd) {
 	if m.identity == nil {
-		m.err = fmt.Errorf("non connecté : choisissez un profil avec 'p'")
+		m.err = fmt.Errorf("not connected: choose a profile with 'p'")
 		return m, nil
 	}
 	existing := m.asgs
@@ -592,7 +592,7 @@ func (m AppModel) enterASG() (tea.Model, tea.Cmd) {
 	m.screen = ScreenASG
 	if m.asg.TotalCount() == 0 {
 		m.loading = true
-		m.loadingMsg = "Chargement des Auto Scaling Groups…"
+		m.loadingMsg = "Loading Auto Scaling Groups…"
 		return m, tea.Batch(listASGCmd(&m), m.spinner.Tick)
 	}
 	return m, nil
@@ -601,7 +601,7 @@ func (m AppModel) enterASG() (tea.Model, tea.Cmd) {
 // enterELB opens the Load Balancers list, loading them if none are cached.
 func (m AppModel) enterELB() (tea.Model, tea.Cmd) {
 	if m.identity == nil {
-		m.err = fmt.Errorf("non connecté : choisissez un profil avec 'p'")
+		m.err = fmt.Errorf("not connected: choose a profile with 'p'")
 		return m, nil
 	}
 	existing := m.lbs
@@ -610,7 +610,7 @@ func (m AppModel) enterELB() (tea.Model, tea.Cmd) {
 	m.screen = ScreenELB
 	if m.elb.TotalCount() == 0 {
 		m.loading = true
-		m.loadingMsg = "Chargement des Load Balancers…"
+		m.loadingMsg = "Loading Load Balancers…"
 		return m, tea.Batch(listELBCmd(&m), m.spinner.Tick)
 	}
 	return m, nil
@@ -633,19 +633,19 @@ func (m AppModel) updateRegions(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 			m.instances = nil
 			m.asgs = nil
 			m.lbs = nil
-			clearCmd := m.setStatus(fmt.Sprintf("Région: %s.", it.Region))
+			clearCmd := m.setStatus(fmt.Sprintf("Region: %s.", it.Region))
 
 			dest := m.returnOrActions()
 			if dest == ScreenEC2 {
 				m.ec2 = screens.NewEC2Table(m.contentWidth(), m.ec2ContentHeight())
 				m.screen = ScreenEC2
 				m.loading = true
-				m.loadingMsg = "Application de la région…"
+				m.loadingMsg = "Applying region…"
 				return m, tea.Batch(whoamiCmd(m.currentProfile(), m.activeRegion), clearCmd, m.spinner.Tick)
 			}
 			m.screen = dest
 			m.loading = true
-			m.loadingMsg = "Application de la région…"
+			m.loadingMsg = "Applying region…"
 			return m, tea.Batch(whoamiCmd(m.currentProfile(), m.activeRegion), clearCmd, m.spinner.Tick)
 		}
 	}
@@ -687,26 +687,26 @@ func (m AppModel) updateEC2(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		return m, nil
 	case key.Matches(msg, m.keys.Refresh):
 		m.loading = true
-		m.loadingMsg = "Rafraîchissement…"
+		m.loadingMsg = "Refreshing…"
 		return m, tea.Batch(listInstancesCmd(&m), m.spinner.Tick)
 	case key.Matches(msg, m.keys.Yank):
 		inst, ok := m.ec2.SelectedInstance()
 		if !ok {
-			m.err = fmt.Errorf("aucune instance sélectionnée")
+			m.err = fmt.Errorf("no instance selected")
 			return m, nil
 		}
 		return m, copyCmd("instance ID", inst.InstanceID)
 	case key.Matches(msg, m.keys.Shell):
 		inst, ok := m.ec2.SelectedInstance()
 		if !ok {
-			m.err = fmt.Errorf("aucune instance sélectionnée")
+			m.err = fmt.Errorf("no instance selected")
 			return m, nil
 		}
 		return m, shellCmd(m.activeProfile, m.activeRegion, inst.InstanceID)
 	case key.Matches(msg, m.keys.PortFwd):
 		inst, ok := m.ec2.SelectedInstance()
 		if !ok {
-			m.err = fmt.Errorf("aucune instance sélectionnée")
+			m.err = fmt.Errorf("no instance selected")
 			return m, nil
 		}
 		m.pfForm = screens.NewPortForwardForm(inst.InstanceID, inst.Name)
@@ -721,7 +721,7 @@ func (m AppModel) updateEC2(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 	case key.Matches(msg, m.keys.Enter):
 		inst, ok := m.ec2.SelectedInstance()
 		if !ok {
-			m.err = fmt.Errorf("aucune instance sélectionnée")
+			m.err = fmt.Errorf("no instance selected")
 			return m, nil
 		}
 		m.ec2Detail = screens.NewEC2Detail(inst, m.contentWidth(), m.contentHeight()-2)
@@ -852,11 +852,11 @@ func (m AppModel) updateASG(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		return m, nil
 	case key.Matches(msg, m.keys.Refresh):
 		m.loading = true
-		m.loadingMsg = "Rafraîchissement…"
+		m.loadingMsg = "Refreshing…"
 		return m, tea.Batch(listASGCmd(&m), m.spinner.Tick)
 	case key.Matches(msg, m.keys.Yank):
 		if g, ok := m.asg.SelectedGroup(); ok {
-			return m, copyCmd("nom ASG", g.Name)
+			return m, copyCmd("ASG name", g.Name)
 		}
 		return m, nil
 	case key.Matches(msg, m.keys.Enter):
@@ -890,7 +890,7 @@ func (m AppModel) updateASGDetail(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		m.asgDetail.ScrollDown(1)
 		return m, nil
 	case key.Matches(msg, m.keys.Yank):
-		return m, copyCmd("nom ASG", m.asgDetail.Group.Name)
+		return m, copyCmd("ASG name", m.asgDetail.Group.Name)
 	case key.Matches(msg, m.keys.Refresh):
 		m.asgDetail.TGState = screens.BlockLoading
 		m.asgDetail.ActState = screens.BlockLoading
@@ -929,7 +929,7 @@ func (m AppModel) updateELB(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		return m, nil
 	case key.Matches(msg, m.keys.Refresh):
 		m.loading = true
-		m.loadingMsg = "Rafraîchissement…"
+		m.loadingMsg = "Refreshing…"
 		return m, tea.Batch(listELBCmd(&m), m.spinner.Tick)
 	case key.Matches(msg, m.keys.Yank):
 		if lb, ok := m.elb.SelectedLoadBalancer(); ok {
@@ -1024,7 +1024,7 @@ func (m AppModel) updatePFForm(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		}
 		m.err = nil
 		m.loading = true
-		m.loadingMsg = "Établissement du tunnel…"
+		m.loadingMsg = "Establishing tunnel…"
 		return m, tea.Batch(
 			startTunnelCmd(m.tunnels, m.activeProfile, m.activeRegion,
 				m.pfForm.Target, m.pfForm.TargetName, host, remotePort, localPort),
@@ -1063,12 +1063,12 @@ func (m AppModel) updateTunnels(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		if m.tunnelCursor >= 0 && m.tunnelCursor < len(tunnels) {
 			id := tunnels[m.tunnelCursor].ID
 			m.tunnels.stop(id)
-			return m, m.setStatus(fmt.Sprintf("Arrêt du tunnel #%d…", id))
+			return m, m.setStatus(fmt.Sprintf("Stopping tunnel #%d…", id))
 		}
 		return m, nil
 	case key.Matches(msg, m.keys.StopAllFwd): // 'X' stop all on this screen
 		m.tunnels.stopAll()
-		return m, m.setStatus("Arrêt de tous les tunnels…")
+		return m, m.setStatus("Stopping all tunnels…")
 	}
 	return m, nil
 }

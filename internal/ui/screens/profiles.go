@@ -292,9 +292,9 @@ func (p *ProfileList) ensureVisible() {
 func (p ProfileList) View() string {
 	var b strings.Builder
 
-	b.WriteString(plTitleStyle.Render("Profils AWS"))
+	b.WriteString(plTitleStyle.Render("AWS profiles"))
 	if n := len(p.selable); n > 0 {
-		b.WriteString(plHeaderMeta.Render(fmt.Sprintf("  %d profil(s)", n)))
+		b.WriteString(plHeaderMeta.Render(fmt.Sprintf("  %d profile(s)", n)))
 	}
 	b.WriteByte('\n')
 
@@ -307,7 +307,7 @@ func (p ProfileList) View() string {
 	}
 
 	if len(p.selable) == 0 {
-		b.WriteString(plEmptyStyle.Render("Aucun profil ne correspond au filtre."))
+		b.WriteString(plEmptyStyle.Render("No profile matches the filter."))
 		return b.String()
 	}
 
@@ -338,15 +338,15 @@ func (p ProfileList) renderRow(i int) string {
 func (p ProfileList) renderHeader(g awsconfig.Group) string {
 	switch g.Kind {
 	case awsconfig.GroupSSO:
-		return plHeaderSSO.Render("▼ session SSO") + "  " +
+		return plHeaderSSO.Render("▼ SSO session") + "  " +
 			plHeaderSSO.Render(g.Label) +
 			plHeaderMeta.Render(fmt.Sprintf("  (%d)", len(g.Profiles)))
 	case awsconfig.GroupDependency:
-		return plHeaderDep.Render("▼ dérivés de") + "  " +
+		return plHeaderDep.Render("▼ derived from") + "  " +
 			plHeaderDep.Render(g.Label) +
 			plHeaderMeta.Render(fmt.Sprintf("  (%d)", len(g.Profiles)))
 	default:
-		return plHeaderStand.Render("▼ autonomes") +
+		return plHeaderStand.Render("▼ standalone") +
 			plHeaderMeta.Render(fmt.Sprintf("  (%d)", len(g.Profiles)))
 	}
 }
@@ -387,7 +387,7 @@ func (p ProfileList) renderProfile(rowIdx int, r row) string {
 	if reg := r.profile.Region; reg != "" {
 		meta += "  " + plRegionStyle.Render(reg)
 	} else {
-		meta += "  " + plRegionStyle.Render("(région par défaut)")
+		meta += "  " + plRegionStyle.Render("(default region)")
 	}
 
 	left := pointer + plTreeStyle.Render(tree) + nameRendered

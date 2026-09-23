@@ -18,7 +18,7 @@ func replaceExecutable(dst, src string) error {
 	// Stage the new binary next to the target (same volume → fast move).
 	staged := filepath.Join(dstDir, ".aws-tui.new.exe")
 	if err := copyFile(src, staged); err != nil {
-		return fmt.Errorf("préparation du nouveau binaire (droits d'écriture sur %s ?): %w", dstDir, err)
+		return fmt.Errorf("preparing the new binary (write access to %s?): %w", dstDir, err)
 	}
 	defer os.Remove(staged)
 
@@ -28,14 +28,14 @@ func replaceExecutable(dst, src string) error {
 
 	// Move the running executable aside; this is permitted while it runs.
 	if err := os.Rename(dst, old); err != nil {
-		return fmt.Errorf("déplacement de l'ancien binaire: %w", err)
+		return fmt.Errorf("moving the old binary: %w", err)
 	}
 
 	// Put the new binary in place.
 	if err := os.Rename(staged, dst); err != nil {
 		// Roll back so the tool stays runnable.
 		_ = os.Rename(old, dst)
-		return fmt.Errorf("installation du nouveau binaire: %w", err)
+		return fmt.Errorf("installing the new binary: %w", err)
 	}
 
 	// Try to delete the old binary; it stays locked while running, and will be

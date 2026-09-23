@@ -53,5 +53,5 @@ func Copy(text string) error {
 		return nil
 	}
 
-	return fmt.Errorf("aucun outil de presse-papiers trouvé (essayé : %s)", strings.Join(missing, ", "))
+	return fmt.Errorf("no clipboard tool found (tried: %s)", strings.Join(missing, ", "))
 }

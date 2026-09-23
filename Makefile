@@ -1,36 +1,36 @@
 # aws-tui — Makefile
 #
-# Cibles principales :
-#   make build        compile le binaire local dans ./bin
-#   make install      compile et installe dans $(PREFIX)/bin (défaut /usr/local)
-#   make uninstall    retire le binaire installé
-#   make cross        compile pour toutes les plateformes dans ./dist
-#   make test         lance les tests
+# Main targets:
+#   make build        build the local binary into ./bin
+#   make install      build and install into $(PREFIX)/bin (default /usr/local)
+#   make uninstall    remove the installed binary
+#   make cross        build for all platforms into ./dist
+#   make test         run the tests
 #   make vet          go vet
 #   make check        vet + test
-#   make clean        supprime bin/ et dist/
-#   make version      affiche la version détectée
+#   make clean        remove bin/ and dist/
+#   make version      print the detected version
 
 BINARY      := aws-tui
 PKG         := github.com/VeugDamien/aws-tui
 MODULE_MAIN := .
 
-# Version dérivée de git (tag le plus proche), sinon "dev".
+# Version derived from git (nearest tag), otherwise "dev".
 VERSION ?= $(shell git describe --tags --always --dirty 2>/dev/null || echo dev)
 COMMIT  ?= $(shell git rev-parse --short HEAD 2>/dev/null || echo none)
 DATE    ?= $(shell date -u +%Y-%m-%dT%H:%M:%SZ)
 
-# Injection des métadonnées dans le paquet main.
+# Inject metadata into the main package.
 LDFLAGS := -s -w \
 	-X main.version=$(VERSION) \
 	-X main.commit=$(COMMIT) \
 	-X main.date=$(DATE)
 
-# Répertoire d'installation (surchargable : make install PREFIX=$HOME/.local).
+# Install directory (overridable: make install PREFIX=$HOME/.local).
 PREFIX  ?= /usr/local
 BINDIR  := $(PREFIX)/bin
 
-# Plateformes ciblées par `make cross` (format os/arch).
+# Platforms targeted by `make cross` (os/arch format).
 PLATFORMS := \
 	darwin/amd64 \
 	darwin/arm64 \
@@ -44,18 +44,18 @@ PLATFORMS := \
 build:
 	@mkdir -p bin
 	CGO_ENABLED=0 go build -trimpath -ldflags '$(LDFLAGS)' -o bin/$(BINARY) $(MODULE_MAIN)
-	@echo "Compilé : bin/$(BINARY) ($(VERSION))"
+	@echo "Built: bin/$(BINARY) ($(VERSION))"
 
 .PHONY: install
 install: build
 	@install -d "$(BINDIR)"
 	@install -m 0755 bin/$(BINARY) "$(BINDIR)/$(BINARY)"
-	@echo "Installé : $(BINDIR)/$(BINARY)"
+	@echo "Installed: $(BINDIR)/$(BINARY)"
 
 .PHONY: uninstall
 uninstall:
 	@rm -f "$(BINDIR)/$(BINARY)"
-	@echo "Désinstallé : $(BINDIR)/$(BINARY)"
+	@echo "Uninstalled: $(BINDIR)/$(BINARY)"
 
 .PHONY: cross
 cross:
@@ -68,7 +68,7 @@ cross:
 		CGO_ENABLED=0 GOOS=$$os GOARCH=$$arch \
 			go build -trimpath -ldflags '$(LDFLAGS)' -o "$$out" $(MODULE_MAIN) || exit 1; \
 	done
-	@echo "Binaires cross-compilés dans dist/"
+	@echo "Cross-compiled binaries in dist/"
 
 .PHONY: test
 test:
@@ -88,13 +88,13 @@ tidy:
 .PHONY: clean
 clean:
 	rm -rf bin dist
-	@echo "Nettoyé : bin/ dist/"
+	@echo "Cleaned: bin/ dist/"
 
 .PHONY: version
 version:
 	@echo "version=$(VERSION) commit=$(COMMIT) date=$(DATE)"
 
-# Vérifie la config GoReleaser (nécessite goreleaser installé).
+# Check the GoReleaser config (requires goreleaser installed).
 .PHONY: release-check
 release-check:
 	goreleaser check

@@ -22,10 +22,10 @@ var elbHeaders = []struct {
 	title string
 	width int
 }{
-	{"Nom", colELBNameW},
+	{"Name", colELBNameW},
 	{"Type", colELBTypeW},
-	{"Schéma", colELBSchemeW},
-	{"État", colELBStateW},
+	{"Scheme", colELBSchemeW},
+	{"State", colELBStateW},
 	{"DNS", colELBDNSW},
 }
 
@@ -226,7 +226,7 @@ func (t *ELBTable) View() string {
 	}
 
 	if t.CanScrollHorizontally() {
-		b.WriteString("\n" + elbScrollHintStyle.Render("← / → défiler horizontalement"))
+		b.WriteString("\n" + elbScrollHintStyle.Render("← / → scroll horizontally"))
 	}
 	return b.String()
 }

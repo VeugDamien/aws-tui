@@ -25,12 +25,12 @@ func replaceExecutable(dst, src string) error {
 	// (same filesystem). Fall back to a copy if rename across devices fails.
 	staged := filepath.Join(dstDir, ".aws-tui.new")
 	if err := copyFile(src, staged, mode); err != nil {
-		return fmt.Errorf("préparation du nouveau binaire (droits d'écriture sur %s ?): %w", dstDir, err)
+		return fmt.Errorf("preparing the new binary (write access to %s?): %w", dstDir, err)
 	}
 	defer os.Remove(staged) // no-op if the rename below consumed it
 
 	if err := os.Rename(staged, dst); err != nil {
-		return fmt.Errorf("remplacement du binaire %s: %w", dst, err)
+		return fmt.Errorf("replacing the binary %s: %w", dst, err)
 	}
 	return nil
 }

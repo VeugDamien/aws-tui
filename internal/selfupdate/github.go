@@ -54,7 +54,7 @@ func LatestRelease(ctx context.Context) (*Release, error) {
 	defer resp.Body.Close()
 
 	if resp.StatusCode == http.StatusNotFound {
-		return nil, fmt.Errorf("aucune release publiée pour %s/%s", owner, repo)
+		return nil, fmt.Errorf("no release published for %s/%s", owner, repo)
 	}
 	if resp.StatusCode != http.StatusOK {
 		body, _ := io.ReadAll(io.LimitReader(resp.Body, 512))
@@ -63,10 +63,10 @@ func LatestRelease(ctx context.Context) (*Release, error) {
 
 	var rel Release
 	if err := json.NewDecoder(resp.Body).Decode(&rel); err != nil {
-		return nil, fmt.Errorf("décodage de la réponse GitHub: %w", err)
+		return nil, fmt.Errorf("decoding GitHub response: %w", err)
 	}
 	if rel.TagName == "" {
-		return nil, fmt.Errorf("réponse GitHub sans tag_name")
+		return nil, fmt.Errorf("GitHub response without tag_name")
 	}
 	return &rel, nil
 }
@@ -83,5 +83,5 @@ func (r *Release) findAsset(want string) (Asset, error) {
 	for _, a := range r.Assets {
 		names = append(names, a.Name)
 	}
-	return Asset{}, fmt.Errorf("archive %q introuvable dans la release (%d assets disponibles: %v)", want, len(r.Assets), names)
+	return Asset{}, fmt.Errorf("archive %q not found in the release (%d assets available: %v)", want, len(r.Assets), names)
 }

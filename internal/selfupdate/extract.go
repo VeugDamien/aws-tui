@@ -63,7 +63,7 @@ func extractFromTarGz(archivePath string) (string, error) {
 			return writeTempBinary(tr)
 		}
 	}
-	return "", fmt.Errorf("binaire %q introuvable dans l'archive", want)
+	return "", fmt.Errorf("binary %q not found in the archive", want)
 }
 
 func extractFromZip(archivePath string) (string, error) {
@@ -85,7 +85,7 @@ func extractFromZip(archivePath string) (string, error) {
 		defer rc.Close()
 		return writeTempBinary(rc)
 	}
-	return "", fmt.Errorf("binaire %q introuvable dans l'archive", want)
+	return "", fmt.Errorf("binary %q not found in the archive", want)
 }
 
 // writeTempBinary copies r into a new temp file (in the same directory as the
@@ -98,7 +98,7 @@ func writeTempBinary(r io.Reader) (string, error) {
 	if _, err := io.Copy(out, io.LimitReader(r, maxBinaryBytes)); err != nil {
 		out.Close()
 		os.Remove(out.Name())
-		return "", fmt.Errorf("extraction du binaire: %w", err)
+		return "", fmt.Errorf("extracting the binary: %w", err)
 	}
 	if err := out.Close(); err != nil {
 		os.Remove(out.Name())

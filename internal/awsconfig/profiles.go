@@ -74,10 +74,10 @@ func ConfigPath() string {
 func LoadProfiles() ([]Profile, error) {
 	path := ConfigPath()
 	if path == "" {
-		return nil, fmt.Errorf("impossible de déterminer le chemin de ~/.aws/config")
+		return nil, fmt.Errorf("unable to determine the path to ~/.aws/config")
 	}
 	if _, err := os.Stat(path); err != nil {
-		return nil, fmt.Errorf("fichier de configuration AWS introuvable (%s): %w", path, err)
+		return nil, fmt.Errorf("AWS configuration file not found (%s): %w", path, err)
 	}
 
 	cfg, err := ini.Load(path)

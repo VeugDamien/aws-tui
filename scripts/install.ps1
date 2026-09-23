@@ -1,17 +1,17 @@
 <#
 .SYNOPSIS
-    Installe aws-tui sur Windows depuis les Releases GitHub.
+    Installs aws-tui on Windows from GitHub Releases.
 
 .DESCRIPTION
-    Détecte l'architecture, télécharge l'archive .zip de la release, vérifie le
-    checksum SHA-256, extrait le binaire dans le répertoire d'installation et
-    l'ajoute au PATH utilisateur si nécessaire.
+    Detects the architecture, downloads the release .zip archive, verifies the
+    SHA-256 checksum, extracts the binary into the install directory and adds it to
+    the user PATH if needed.
 
 .PARAMETER Version
-    Version à installer (ex. v1.2.3). Par défaut : dernière release.
+    Version to install (e.g. v1.2.3). Default: latest release.
 
 .PARAMETER InstallDir
-    Répertoire d'installation. Par défaut : %LOCALAPPDATA%\aws-tui\bin.
+    Install directory. Default: %LOCALAPPDATA%\aws-tui\bin.
 
 .EXAMPLE
     irm https://raw.githubusercontent.com/VeugDamien/aws-tui/main/scripts/install.ps1 | iex
@@ -32,34 +32,34 @@ $Repo   = "aws-tui"
 $Binary = "aws-tui"
 
 function Write-Info  { param($m) Write-Host "==> $m" -ForegroundColor Cyan }
-function Write-Warn  { param($m) Write-Host "attention: $m" -ForegroundColor Yellow }
+function Write-Warn  { param($m) Write-Host "warning: $m" -ForegroundColor Yellow }
 
 # --- Architecture -----------------------------------------------------------
 
 $arch = switch ($env:PROCESSOR_ARCHITECTURE) {
     "AMD64" { "amd64" }
     "ARM64" { "arm64" }
-    default { throw "Architecture non supportée : $env:PROCESSOR_ARCHITECTURE" }
+    default { throw "Unsupported architecture: $env:PROCESSOR_ARCHITECTURE" }
 }
 if ($arch -eq "arm64") {
-    Write-Warn "Aucun binaire Windows arm64 publié ; tentative avec amd64 (émulation)."
+    Write-Warn "No Windows arm64 binary published; trying amd64 (emulation)."
     $arch = "amd64"
 }
 
 # --- Version ----------------------------------------------------------------
 
 if ([string]::IsNullOrEmpty($Version)) {
-    Write-Info "Recherche de la dernière version..."
+    Write-Info "Looking up the latest version..."
     $api = "https://api.github.com/repos/$Owner/$Repo/releases/latest"
     $rel = Invoke-RestMethod -Uri $api -Headers @{ "User-Agent" = "aws-tui-installer" }
     $Version = $rel.tag_name
     if ([string]::IsNullOrEmpty($Version)) {
-        throw "Impossible de déterminer la dernière version (aucune release publiée ?)."
+        throw "Unable to determine the latest version (no release published?)."
     }
 }
 $num = $Version.TrimStart("v")
 
-# --- Téléchargement ---------------------------------------------------------
+# --- Download ---------------------------------------------------------------
 
 $archive = "$($Binary)_$($num)_windows_$($arch).zip"
 $base    = "https://github.com/$Owner/$Repo/releases/download/$Version"
@@ -69,57 +69,57 @@ $tmp = Join-Path $env:TEMP ("aws-tui-" + [System.Guid]::NewGuid().ToString("N"))
 New-Item -ItemType Directory -Path $tmp -Force | Out-Null
 try {
     $zipPath = Join-Path $tmp $archive
-    Write-Info "Téléchargement de $archive ($Version)..."
+    Write-Info "Downloading $archive ($Version)..."
     Invoke-WebRequest -Uri $url -OutFile $zipPath -UseBasicParsing
 
-    # Vérification du checksum si disponible.
+    # Verify the checksum if available.
     $sumPath = Join-Path $tmp "checksums.txt"
     try {
         Invoke-WebRequest -Uri "$base/checksums.txt" -OutFile $sumPath -UseBasicParsing
-        Write-Info "Vérification du checksum SHA-256..."
+        Write-Info "Verifying SHA-256 checksum..."
         $expected = (Select-String -Path $sumPath -Pattern ([regex]::Escape($archive)) |
                      Select-Object -First 1).Line -split '\s+' | Select-Object -First 1
         if ($expected) {
             $actual = (Get-FileHash -Path $zipPath -Algorithm SHA256).Hash.ToLower()
             if ($actual -ne $expected.ToLower()) {
-                throw "Checksum invalide (attendu $expected, obtenu $actual)."
+                throw "Invalid checksum (expected $expected, got $actual)."
             }
         }
     } catch {
-        Write-Warn "checksums.txt indisponible ou non vérifié : $($_.Exception.Message)"
+        Write-Warn "checksums.txt unavailable or not verified: $($_.Exception.Message)"
     }
 
     # --- Extraction + installation ------------------------------------------
 
-    Write-Info "Extraction..."
+    Write-Info "Extracting..."
     Expand-Archive -Path $zipPath -DestinationPath $tmp -Force
     $src = Get-ChildItem -Path $tmp -Recurse -Filter "$Binary.exe" | Select-Object -First 1
-    if (-not $src) { throw "Binaire $Binary.exe introuvable dans l'archive." }
+    if (-not $src) { throw "Binary $Binary.exe not found in the archive." }
 
     New-Item -ItemType Directory -Path $InstallDir -Force | Out-Null
     Copy-Item -Path $src.FullName -Destination (Join-Path $InstallDir "$Binary.exe") -Force
-    Write-Info "Installé : $(Join-Path $InstallDir "$Binary.exe")"
+    Write-Info "Installed: $(Join-Path $InstallDir "$Binary.exe")"
 
-    # --- PATH utilisateur ---------------------------------------------------
+    # --- User PATH ----------------------------------------------------------
 
     $userPath = [Environment]::GetEnvironmentVariable("Path", "User")
     if ($userPath -notlike "*$InstallDir*") {
         [Environment]::SetEnvironmentVariable("Path", "$userPath;$InstallDir", "User")
-        Write-Info "Ajouté au PATH utilisateur. Rouvrez votre terminal pour en profiter."
+        Write-Info "Added to the user PATH. Reopen your terminal to use it."
     }
 }
 finally {
     Remove-Item -Path $tmp -Recurse -Force -ErrorAction SilentlyContinue
 }
 
-# --- Vérifications post-installation ----------------------------------------
+# --- Post-install checks ----------------------------------------------------
 
 if (-not (Get-Command aws -ErrorAction SilentlyContinue)) {
-    Write-Warn "AWS CLI v2 ('aws') introuvable : requis pour les connexions et sessions SSM."
+    Write-Warn "AWS CLI v2 ('aws') not found: required for logins and SSM sessions."
 }
 if (-not (Get-Command session-manager-plugin -ErrorAction SilentlyContinue)) {
-    Write-Warn "session-manager-plugin introuvable : requis pour les sessions/port-forwards SSM."
+    Write-Warn "session-manager-plugin not found: required for SSM sessions/port-forwards."
 }
 
 & (Join-Path $InstallDir "$Binary.exe") --version
-Write-Info "Terminé. Lancez : $Binary"
+Write-Info "Done. Run: $Binary"

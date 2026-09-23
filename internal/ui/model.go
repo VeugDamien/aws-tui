@@ -105,7 +105,7 @@ func New() AppModel {
 		keys:         defaultKeyMap(),
 		tunnels:      newTunnelManager(),
 		loading:      true,
-		loadingMsg:   "Chargement des profils…",
+		loadingMsg:   "Loading profiles…",
 	}
 }
 

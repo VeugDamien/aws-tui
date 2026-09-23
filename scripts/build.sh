@@ -1,19 +1,19 @@
 #!/usr/bin/env bash
 #
-# build.sh — cross-compile aws-tui pour toutes les plateformes, crée les archives
-# de distribution (.tar.gz pour Unix, .zip pour Windows) et un fichier de
-# checksums SHA-256, le tout dans ./dist.
+# build.sh — cross-compiles aws-tui for all platforms, creates the distribution
+# archives (.tar.gz for Unix, .zip for Windows) and a SHA-256 checksums file,
+# all in ./dist.
 #
-# Usage :
-#   scripts/build.sh                 # version dérivée de git
-#   VERSION=1.2.3 scripts/build.sh   # version explicite
+# Usage:
+#   scripts/build.sh                 # version derived from git
+#   VERSION=1.2.3 scripts/build.sh   # explicit version
 #
-# N'a besoin que de Go (et zip pour les archives Windows, sinon un .zip est
-# produit via un fallback tar). Aucune dépendance externe.
+# Only needs Go (and zip for Windows archives, otherwise a .zip is produced via a
+# tar fallback). No external dependency.
 
 set -euo pipefail
 
-# Racine du projet (dossier parent de scripts/).
+# Project root (parent folder of scripts/).
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 cd "$ROOT"
 
@@ -26,7 +26,7 @@ DATE="${DATE:-$(date -u +%Y-%m-%dT%H:%M:%SZ)}"
 
 LDFLAGS="-s -w -X main.version=${VERSION} -X main.commit=${COMMIT} -X main.date=${DATE}"
 
-# os/arch ciblés.
+# targeted os/arch.
 PLATFORMS=(
 	"darwin/amd64"
 	"darwin/arm64"
@@ -53,12 +53,12 @@ for platform in "${PLATFORMS[@]}"; do
 	CGO_ENABLED=0 GOOS="$os" GOARCH="$arch" \
 		go build -trimpath -ldflags "$LDFLAGS" -o "${workdir}/${BINARY}${ext}" .
 
-	# Documents inclus dans l'archive (best effort).
+	# Documents included in the archive (best effort).
 	for doc in README.md LICENSE; do
 		[ -f "$doc" ] && cp "$doc" "$workdir/" || true
 	done
 
-	# Archive : .zip pour Windows, .tar.gz sinon.
+	# Archive: .zip for Windows, .tar.gz otherwise.
 	if [ "$os" = "windows" ]; then
 		( cd "$DIST" && zip -qr "${name}.zip" "$name" )
 	else
@@ -67,7 +67,7 @@ for platform in "${PLATFORMS[@]}"; do
 	rm -rf "$workdir"
 done
 
-# Checksums SHA-256 de toutes les archives.
+# SHA-256 checksums of all archives.
 echo "→ checksums"
 (
 	cd "$DIST"
@@ -79,5 +79,5 @@ echo "→ checksums"
 )
 
 echo
-echo "Artefacts dans ${DIST}/ :"
+echo "Artifacts in ${DIST}/:"
 ls -1 "$DIST"

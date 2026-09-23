@@ -22,7 +22,7 @@ func NewRegionList(regions []string, width, height int) list.Model {
 	delegate := list.NewDefaultDelegate()
 	delegate.ShowDescription = false
 	l := list.New(items, delegate, width, height)
-	l.Title = "Choisir une région"
+	l.Title = "Choose a region"
 	l.SetShowStatusBar(false)
 	l.SetFilteringEnabled(true)
 	l.SetShowHelp(false)
