@@ -1,0 +1,31 @@
+# Binaires
+/aws-tui
+*.exe
+*.test
+*.out
+
+# Artefacts de build
+/bin/
+/dist/
+
+# Go
+/vendor/
+coverage.txt
+coverage.html
+
+# Logs de session / artefacts d'agents
+session-*.md
+.kiro/
+
+# Notes internes (non publiées)
+BACKLOG.md
+
+# Éditeurs / IDE
+.vscode/
+.idea/
+*.swp
+*~
+
+# OS
+.DS_Store
+Thumbs.db

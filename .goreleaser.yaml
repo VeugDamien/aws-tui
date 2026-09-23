@@ -1,0 +1,155 @@
+# GoReleaser — configuration de release pour aws-tui.
+# Schéma v2 (GoReleaser >= 2.0). Docs : https://goreleaser.com
+#
+# Usage local (test, sans publier) :
+#   goreleaser release --snapshot --clean --skip=publish
+# Release réelle (déclenchée par la CI sur un tag vX.Y.Z) :
+#   goreleaser release --clean
+version: 2
+
+project_name: aws-tui
+
+before:
+  hooks:
+    - go mod tidy
+    - go vet ./...
+
+builds:
+  - id: aws-tui
+    main: .
+    binary: aws-tui
+    env:
+      - CGO_ENABLED=0
+    flags:
+      - -trimpath
+    ldflags:
+      - -s -w
+      - -X main.version={{ .Version }}
+      - -X main.commit={{ .ShortCommit }}
+      - -X main.date={{ .CommitDate }}
+    goos:
+      - darwin
+      - linux
+      - windows
+    goarch:
+      - amd64
+      - arm64
+    # Windows arm64 n'est pas publié (peu répandu ; émulation possible via amd64).
+    ignore:
+      - goos: windows
+        goarch: arm64
+
+archives:
+  - id: default
+    ids:
+      - aws-tui
+    # Nom aligné avec les scripts d'installation :
+    #   aws-tui_<version>_<os>_<arch>(.tar.gz|.zip)
+    name_template: "{{ .ProjectName }}_{{ .Version }}_{{ .Os }}_{{ .Arch }}"
+    formats: [tar.gz]
+    format_overrides:
+      - goos: windows
+        formats: [zip]
+    files:
+      - README.md
+      - LICENSE*
+
+checksum:
+  name_template: "checksums.txt"
+  algorithm: sha256
+
+snapshot:
+  version_template: "{{ incpatch .Version }}-next"
+
+changelog:
+  sort: asc
+  use: github
+  filters:
+    exclude:
+      - "^docs:"
+      - "^test:"
+      - "^chore:"
+      - "merge conflict"
+      - Merge pull request
+      - Merge branch
+
+# Paquets Linux natifs (.deb / .rpm). Aucun dépôt externe requis : ils sont
+# simplement attachés à la release GitHub. Nécessite nfpm (embarqué par GoReleaser).
+nfpms:
+  - id: linux-packages
+    package_name: aws-tui
+    ids:
+      - aws-tui
+    vendor: VeugDamien
+    homepage: https://github.com/VeugDamien/aws-tui
+    maintainer: VeugDamien <noreply@users.noreply.github.com>
+    description: |
+      Interface terminal (TUI) pour gérer les profils AWS, lister les instances
+      EC2, les Auto Scaling Groups et les Load Balancers, et lancer des sessions
+      SSM (shell / port-forward).
+    license: MIT
+    formats:
+      - deb
+      - rpm
+    bindir: /usr/bin
+    # Dépendances runtime recommandées (non bloquantes selon le gestionnaire).
+    recommends:
+      - awscli
+
+release:
+  github:
+    owner: VeugDamien
+    name: aws-tui
+  draft: false
+  prerelease: auto
+  name_template: "aws-tui {{ .Tag }}"
+  footer: |
+    ## Installation
+
+    **macOS / Linux :**
+    ```sh
+    curl -fsSL https://raw.githubusercontent.com/VeugDamien/aws-tui/main/scripts/install.sh | sh
+    ```
+
+    **Windows (PowerShell) :**
+    ```powershell
+    irm https://raw.githubusercontent.com/VeugDamien/aws-tui/main/scripts/install.ps1 | iex
+    ```
+
+    Sinon, téléchargez l'archive correspondant à votre plateforme ci-dessous.
+
+# ---------------------------------------------------------------------------
+# Intégrations gestionnaires de paquets — DÉSACTIVÉES.
+#
+# Elles exigent chacune un dépôt Git annexe (à créer) et un token GitHub
+# (secret `GORELEASER_TOKEN` ou PAT avec accès en écriture au dépôt du tap/bucket).
+# Décommentez et créez les dépôts pour les activer.
+# ---------------------------------------------------------------------------
+#
+# brews:
+#   - name: aws-tui
+#     ids:
+#       - default
+#     repository:
+#       owner: VeugDamien
+#       name: homebrew-tap          # dépôt à créer : github.com/VeugDamien/homebrew-tap
+#       token: "{{ .Env.GORELEASER_TOKEN }}"
+#     homepage: https://github.com/VeugDamien/aws-tui
+#     description: "TUI pour gérer AWS (profils, EC2, ASG, Load Balancers, SSM)."
+#     license: MIT
+#     dependencies:
+#       - name: awscli
+#     test: |
+#       system "#{bin}/aws-tui --version"
+#
+# scoops:
+#   - name: aws-tui
+#     ids:
+#       - default
+#     repository:
+#       owner: VeugDamien
+#       name: scoop-bucket           # dépôt à créer : github.com/VeugDamien/scoop-bucket
+#       token: "{{ .Env.GORELEASER_TOKEN }}"
+#     homepage: https://github.com/VeugDamien/aws-tui
+#     description: "TUI pour gérer AWS (profils, EC2, ASG, Load Balancers, SSM)."
+#     license: MIT
