@@ -153,6 +153,7 @@ func classify(name string, sec *ini.Section) Profile {
 //   - "--profile <name>" / "--profile=<name>"
 //   - "-p <name>" / "-p=<name>"
 //   - "aws-vault exec <name> ..."
+//
 // It returns an empty string when no profile can be confidently determined.
 func parentFromCredentialProcess(cmd string) string {
 	fields := strings.Fields(cmd)

@@ -1042,7 +1042,8 @@ func (m AppModel) updateELBDetail(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 
 // returnFromPF returns to the screen the port-forward form was opened from
 // (EC2 list or instance detail), re-focusing the table when relevant.
-func (m AppModel) returnFromPF() AppModel {	switch m.pfReturn {
+func (m AppModel) returnFromPF() AppModel {
+	switch m.pfReturn {
 	case ScreenEC2Detail:
 		m.screen = ScreenEC2Detail
 	default:

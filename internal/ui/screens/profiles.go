@@ -353,17 +353,13 @@ func (p ProfileList) renderHeader(g awsconfig.Group) string {
 
 func (p ProfileList) renderProfile(rowIdx int, r row) string {
 	// Is this the selected row?
-	selected := false
-	if p.selected >= 0 && p.selected < len(p.selable) && p.selable[p.selected] == rowIdx {
-		selected = true
-	}
+	selected := p.selected >= 0 && p.selected < len(p.selable) && p.selable[p.selected] == rowIdx
 
 	// Tree prefix based on depth.
 	var tree string
-	switch {
-	case r.depth == 0:
+	if r.depth == 0 {
 		tree = "  "
-	default:
+	} else {
 		branch := "├─ "
 		if r.last {
 			branch = "└─ "
