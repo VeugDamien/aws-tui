@@ -23,9 +23,80 @@ type ASGDetail struct {
 	ActErr   error
 	Acts     []awsclient.ScalingActivity
 
+	// Copy menu overlay state.
+	copyOpen   bool
+	copyItems  []CopyField
+	copyCursor int
+
 	scroll int
 	width  int
 	height int
+}
+
+// CopyMenuOpen reports whether the copy overlay is currently shown.
+func (d *ASGDetail) CopyMenuOpen() bool { return d.copyOpen }
+
+// OpenCopyMenu builds the list of copyable fields (skipping empty ones) and shows
+// the overlay.
+func (d *ASGDetail) OpenCopyMenu() {
+	g := d.Group
+	candidates := []CopyField{
+		{"Name", g.Name},
+		{"ARN", g.ARN},
+		{"Launch", g.LaunchName},
+		{"Subnets", g.VPCZoneID},
+		{"Zones", strings.Join(g.AZs, ", ")},
+	}
+	d.copyItems = d.copyItems[:0]
+	for _, c := range candidates {
+		if c.Value != "" {
+			d.copyItems = append(d.copyItems, c)
+		}
+	}
+	d.copyCursor = 0
+	d.copyOpen = true
+}
+
+// CloseCopyMenu hides the overlay.
+func (d *ASGDetail) CloseCopyMenu() { d.copyOpen = false }
+
+// CopyMenuUp / CopyMenuDown move the overlay cursor.
+func (d *ASGDetail) CopyMenuUp() {
+	if d.copyCursor > 0 {
+		d.copyCursor--
+	}
+}
+
+func (d *ASGDetail) CopyMenuDown() {
+	if d.copyCursor < len(d.copyItems)-1 {
+		d.copyCursor++
+	}
+}
+
+// SelectedCopyField returns the highlighted field of the copy menu.
+func (d *ASGDetail) SelectedCopyField() (CopyField, bool) {
+	if d.copyCursor < 0 || d.copyCursor >= len(d.copyItems) {
+		return CopyField{}, false
+	}
+	return d.copyItems[d.copyCursor], true
+}
+
+// renderCopyMenu renders the copy overlay: a bordered list of copyable fields.
+func (d *ASGDetail) renderCopyMenu() string {
+	var b strings.Builder
+	b.WriteString(detailCopyTitleStyle.Render(" Copy ") + "\n\n")
+	for i, f := range d.copyItems {
+		label := pad(f.Label, 13)
+		val := truncateRunes(f.Value, 48)
+		row := label + " " + val
+		if i == d.copyCursor {
+			b.WriteString("▶ " + detailCopySelStyle.Render(pad(row, 62)) + "\n")
+		} else {
+			b.WriteString("  " + detailCopyLabelStyle.Render(label) + " " + detailCopyValStyle.Render(val) + "\n")
+		}
+	}
+	b.WriteString("\n" + detailMutedStyle.Render("↑/↓ select · enter copy · esc close"))
+	return detailCopyBoxStyle.Render(b.String())
 }
 
 var (
@@ -85,6 +156,9 @@ func (d *ASGDetail) View(spinner string) string {
 	out := title + "\n\n" + body
 	if total > shown {
 		out += "\n" + detailMutedStyle.Render(fmt.Sprintf("↑/↓ scroll (%d/%d)", d.scroll+1, total))
+	}
+	if d.copyOpen {
+		return title + "\n\n" + d.renderCopyMenu()
 	}
 	return out
 }

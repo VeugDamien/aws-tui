@@ -879,6 +879,28 @@ func (m AppModel) updateASG(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 
 // updateASGDetail handles the ASG detail page: scroll, refresh, back.
 func (m AppModel) updateASGDetail(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
+	// When the copy overlay is open, it captures all navigation keys.
+	if m.asgDetail.CopyMenuOpen() {
+		switch {
+		case key.Matches(msg, m.keys.Back):
+			m.asgDetail.CloseCopyMenu()
+			return m, nil
+		case key.Matches(msg, m.keys.Up):
+			m.asgDetail.CopyMenuUp()
+			return m, nil
+		case key.Matches(msg, m.keys.Down):
+			m.asgDetail.CopyMenuDown()
+			return m, nil
+		case key.Matches(msg, m.keys.Enter):
+			if f, ok := m.asgDetail.SelectedCopyField(); ok {
+				m.asgDetail.CloseCopyMenu()
+				return m, copyCmd(f.Label, f.Value)
+			}
+			return m, nil
+		}
+		return m, nil
+	}
+
 	switch {
 	case key.Matches(msg, m.keys.Back):
 		m.screen = ScreenASG
@@ -891,6 +913,9 @@ func (m AppModel) updateASGDetail(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		return m, nil
 	case key.Matches(msg, m.keys.Yank):
 		return m, copyCmd("ASG name", m.asgDetail.Group.Name)
+	case key.Matches(msg, m.keys.YankMenu):
+		m.asgDetail.OpenCopyMenu()
+		return m, nil
 	case key.Matches(msg, m.keys.Refresh):
 		m.asgDetail.TGState = screens.BlockLoading
 		m.asgDetail.ActState = screens.BlockLoading
@@ -966,6 +991,28 @@ func (m AppModel) updateELB(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 
 // updateELBDetail handles the load balancer detail page: scroll, refresh, back.
 func (m AppModel) updateELBDetail(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
+	// When the copy overlay is open, it captures all navigation keys.
+	if m.elbDetail.CopyMenuOpen() {
+		switch {
+		case key.Matches(msg, m.keys.Back):
+			m.elbDetail.CloseCopyMenu()
+			return m, nil
+		case key.Matches(msg, m.keys.Up):
+			m.elbDetail.CopyMenuUp()
+			return m, nil
+		case key.Matches(msg, m.keys.Down):
+			m.elbDetail.CopyMenuDown()
+			return m, nil
+		case key.Matches(msg, m.keys.Enter):
+			if f, ok := m.elbDetail.SelectedCopyField(); ok {
+				m.elbDetail.CloseCopyMenu()
+				return m, copyCmd(f.Label, f.Value)
+			}
+			return m, nil
+		}
+		return m, nil
+	}
+
 	switch {
 	case key.Matches(msg, m.keys.Back):
 		m.screen = ScreenELB
@@ -978,6 +1025,9 @@ func (m AppModel) updateELBDetail(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		return m, nil
 	case key.Matches(msg, m.keys.Yank):
 		return m, copyCmd("DNS", m.elbDetail.LB.DNSName)
+	case key.Matches(msg, m.keys.YankMenu):
+		m.elbDetail.OpenCopyMenu()
+		return m, nil
 	case key.Matches(msg, m.keys.Refresh):
 		m.elbDetail.ListenersState = screens.BlockLoading
 		m.elbDetail.TGState = screens.BlockLoading
