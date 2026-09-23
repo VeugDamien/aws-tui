@@ -173,7 +173,7 @@ func (m AppModel) footer() string {
 	case ScreenPortForwardForm:
 		hints = "↑/↓ field · tab remote host · enter start · esc cancel"
 	case ScreenTunnels:
-		hints = "↑/↓ navigate · x stop · X stop all · esc back"
+		hints = "↑/↓ navigate · x stop · X stop all · r restart · c clear stopped · esc back"
 	}
 	return helpStyle.Render(hints)
 }

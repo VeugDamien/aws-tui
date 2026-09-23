@@ -33,6 +33,8 @@ type keyMap struct {
 	PortFwd    key.Binding
 	StopFwd    key.Binding
 	StopAllFwd key.Binding
+	RestartFwd key.Binding
+	ClearFwd   key.Binding
 	Tunnels    key.Binding
 	ToggleHost key.Binding
 
@@ -129,6 +131,14 @@ func defaultKeyMap() keyMap {
 			key.WithKeys("X"),
 			key.WithHelp("X", "stop all"),
 		),
+		RestartFwd: key.NewBinding(
+			key.WithKeys("r"),
+			key.WithHelp("r", "restart"),
+		),
+		ClearFwd: key.NewBinding(
+			key.WithKeys("c"),
+			key.WithHelp("c", "clear stopped"),
+		),
 		Tunnels: key.NewBinding(
 			key.WithKeys("t"),
 			key.WithHelp("t", "tunnels"),
@@ -158,7 +168,7 @@ func (k keyMap) FullHelp() [][]key.Binding {
 		{k.ASG, k.ELB},
 		{k.Shell, k.PortFwd, k.Filter, k.Refresh},
 		{k.Yank, k.YankMenu},
-		{k.StopFwd, k.StopAllFwd},
+		{k.StopFwd, k.StopAllFwd, k.RestartFwd, k.ClearFwd},
 		{k.Help, k.Quit},
 	}
 }

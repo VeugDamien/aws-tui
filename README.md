@@ -169,7 +169,7 @@ process tree (CLI + plugin) via `taskkill /T /F`.
 | Load Balancers | `↑/↓` · `←/→` scroll · `enter` details · `/` filter · `y` copy DNS · `r` refresh · `esc` back |
 | LB detail | `↑/↓` scroll · `y` copy DNS · `r` refresh · `esc` back |
 | Port-forward (form) | `↑/↓` field · `tab` toggle remote host · `enter` start · `esc` cancel |
-| Tunnels | `↑/↓` navigate · `x` stop · `X` stop all · `esc` back |
+| Tunnels | `↑/↓` navigate · `x` stop · `X` stop all · `r` restart · `c` clear stopped · `esc` back |
 
 The interface separates **configuration** (persistent top bar: profile, region,
 account — editable via `p`/`g`/`L`) from **functional actions** (EC2, tunnels).

@@ -1069,6 +1069,25 @@ func (m AppModel) updateTunnels(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 	case key.Matches(msg, m.keys.StopAllFwd): // 'X' stop all on this screen
 		m.tunnels.stopAll()
 		return m, m.setStatus("Stopping all tunnels…")
+	case key.Matches(msg, m.keys.RestartFwd): // 'r' restart the selected stopped/failed tunnel
+		if m.tunnelCursor >= 0 && m.tunnelCursor < len(tunnels) {
+			t := tunnels[m.tunnelCursor]
+			if t.State != tunnelStopped && t.State != tunnelFailed {
+				return m, m.setStatus("Only a stopped tunnel can be restarted.")
+			}
+			return m, tea.Batch(
+				restartTunnelCmd(m.tunnels, t.ID),
+				m.setStatus(fmt.Sprintf("Restarting tunnel #%d…", t.ID)),
+			)
+		}
+		return m, nil
+	case key.Matches(msg, m.keys.ClearFwd): // 'c' remove stopped/failed tunnels from the list
+		n := m.tunnels.clearStopped()
+		m.clampTunnelCursor()
+		if n == 0 {
+			return m, m.setStatus("No stopped tunnel to clear.")
+		}
+		return m, m.setStatus(fmt.Sprintf("Cleared %d stopped tunnel(s).", n))
 	}
 	return m, nil
 }
