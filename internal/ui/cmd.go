@@ -277,6 +277,51 @@ func startTunnelCmd(mgr *tunnelManager, profile, region, target, targetName, hos
 	}
 }
 
+// restartTunnelCmd relaunches a previously stopped or failed tunnel, reusing its
+// stored connection parameters. It re-arms the existing entry (keeping its ID) so
+// the list stays stable, then behaves like startTunnelCmd. A companion
+// waitTunnelCmd (batched by the caller) watches for the subprocess exit.
+func restartTunnelCmd(mgr *tunnelManager, id int) tea.Cmd {
+	return func() tea.Msg {
+		if !ssm.PluginAvailable() {
+			return errMsg{fmt.Errorf("session-manager-plugin not found: install it to use port-forwarding")}
+		}
+		t := mgr.get(id)
+		if t == nil {
+			return nil
+		}
+
+		ctx, cancel := context.WithCancel(context.Background())
+		var c *exec.Cmd
+		if t.Host != "" {
+			c = ssm.PortForwardRemoteHostCommand(ctx, t.Profile, t.Region, t.Target, t.Host, t.RemotePort, t.LocalPort)
+		} else {
+			c = ssm.PortForwardCommand(ctx, t.Profile, t.Region, t.Target, t.RemotePort, t.LocalPort)
+		}
+		setProcessGroup(c)
+
+		buf := &safeBuffer{}
+		if !mgr.prepareRestart(id, c, cancel, buf) {
+			// Tunnel is no longer in a restartable state (e.g. running); nothing to do.
+			cancel()
+			return nil
+		}
+
+		if err := launchTunnel(c, cancel, buf); err != nil {
+			mgr.setState(id, tunnelFailed, err)
+			return tunnelExitedMsg{id: id, err: err}
+		}
+		mgr.setState(id, tunnelActive, nil)
+
+		done := mgr.get(id).done
+		go func() {
+			done <- c.Wait()
+		}()
+
+		return tunnelStartedMsg{id: id, summary: t.Summary()}
+	}
+}
+
 // waitTunnelCmd blocks until the tunnel's subprocess exits, then emits
 // tunnelExitedMsg. It is safe to run in a Bubble Tea command goroutine.
 func waitTunnelCmd(mgr *tunnelManager, id int) tea.Cmd {
