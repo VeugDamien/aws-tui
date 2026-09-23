@@ -205,7 +205,7 @@ func (m AppModel) viewActions() string {
 		label := menuKeyStyle.Render(it.key) + "  " + it.label
 		if i == m.actionCursor {
 			pointer = menuKeyStyle.Render("▶ ")
-			label = menuSelStyle.Render(it.key+"  "+it.label)
+			label = menuSelStyle.Render(it.key + "  " + it.label)
 		}
 		b.WriteString(pointer + menuItemStyle.Render(label) + "\n")
 	}
@@ -231,7 +231,7 @@ func (m AppModel) viewEC2() string {
 		if m.ec2.Filtering {
 			cursor = "█"
 		}
-		b.WriteString(fmt.Sprintf("Filter: %s%s\n", m.ec2.Filter, cursor))
+		fmt.Fprintf(&b, "Filter: %s%s\n", m.ec2.Filter, cursor)
 	}
 
 	b.WriteString(m.ec2.View())
@@ -253,7 +253,7 @@ func (m AppModel) viewASG() string {
 		if m.asg.Filtering {
 			cursor = "█"
 		}
-		b.WriteString(fmt.Sprintf("Filter: %s%s\n", m.asg.Filter, cursor))
+		fmt.Fprintf(&b, "Filter: %s%s\n", m.asg.Filter, cursor)
 	}
 
 	b.WriteString(m.asg.View())
@@ -275,7 +275,7 @@ func (m AppModel) viewELB() string {
 		if m.elb.Filtering {
 			cursor = "█"
 		}
-		b.WriteString(fmt.Sprintf("Filter: %s%s\n", m.elb.Filter, cursor))
+		fmt.Fprintf(&b, "Filter: %s%s\n", m.elb.Filter, cursor)
 	}
 
 	b.WriteString(m.elb.View())

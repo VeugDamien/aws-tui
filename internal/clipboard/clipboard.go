@@ -26,7 +26,7 @@ func candidates() []tool {
 		return []tool{{name: "clip"}}
 	default: // linux, *bsd
 		return []tool{
-			{name: "wl-copy"},                       // Wayland
+			{name: "wl-copy"}, // Wayland
 			{name: "xclip", args: []string{"-selection", "clipboard"}}, // X11
 			{name: "xsel", args: []string{"--clipboard", "--input"}},   // X11 alt
 		}

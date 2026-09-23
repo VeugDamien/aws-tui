@@ -77,6 +77,9 @@ func Upgrade(ctx context.Context, current string, opts Options) (*Result, error)
 
 	// Guard: package-manager-managed installs must be updated by that manager.
 	if mgr := managedBy(exe); mgr != "" {
+		// This error is surfaced verbatim to the user as multi-line guidance, so
+		// the trailing punctuation/newlines are intentional.
+		//nolint:staticcheck // ST1005: user-facing multi-line message
 		return nil, fmt.Errorf(
 			"aws-tui appears to be installed via %s (%s).\n"+
 				"Update it with that manager (e.g. \"%s\"),\n"+

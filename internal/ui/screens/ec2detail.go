@@ -416,7 +416,7 @@ func renderRules(rules []awsclient.SGRule) string {
 	}
 	var b strings.Builder
 	for _, r := range rules {
-		b.WriteString(fmt.Sprintf("    %-5s  %-10s  %s\n", r.Protocol, r.Ports, r.Source))
+		fmt.Fprintf(&b, "    %-5s  %-10s  %s\n", r.Protocol, r.Ports, r.Source)
 	}
 	return b.String()
 }
