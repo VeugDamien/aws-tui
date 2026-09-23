@@ -159,11 +159,19 @@ func (m AppModel) footer() string {
 	case ScreenASG:
 		hints = "↑/↓ navigate · enter details · / filter · y copy name · r refresh · esc back"
 	case ScreenASGDetail:
-		hints = "↑/↓ scroll · y copy name · r refresh · esc back"
+		if m.asgDetail.CopyMenuOpen() {
+			hints = "↑/↓ select · enter copy · esc close"
+		} else {
+			hints = "↑/↓ scroll · y copy name · Y copy… · r refresh · esc back"
+		}
 	case ScreenELB:
 		hints = "↑/↓ · ←/→ scroll · enter details · / filter · y copy DNS · r refresh · esc back"
 	case ScreenELBDetail:
-		hints = "↑/↓ scroll · y copy DNS · r refresh · esc back"
+		if m.elbDetail.CopyMenuOpen() {
+			hints = "↑/↓ select · enter copy · esc close"
+		} else {
+			hints = "↑/↓ scroll · y copy DNS · Y copy… · r refresh · esc back"
+		}
 	case ScreenEC2Detail:
 		if m.ec2Detail.CopyMenuOpen() {
 			hints = "↑/↓ select · enter copy · esc close"

@@ -21,9 +21,80 @@ type ELBDetail struct {
 	TGErr   error
 	TGs     []awsclient.TargetGroup
 
+	// Copy menu overlay state.
+	copyOpen   bool
+	copyItems  []CopyField
+	copyCursor int
+
 	scroll int
 	width  int
 	height int
+}
+
+// CopyMenuOpen reports whether the copy overlay is currently shown.
+func (d *ELBDetail) CopyMenuOpen() bool { return d.copyOpen }
+
+// OpenCopyMenu builds the list of copyable fields (skipping empty ones) and shows
+// the overlay.
+func (d *ELBDetail) OpenCopyMenu() {
+	lb := d.LB
+	candidates := []CopyField{
+		{"Name", lb.Name},
+		{"DNS", lb.DNSName},
+		{"ARN", lb.ARN},
+		{"VPC", lb.VPCID},
+		{"Zones", strings.Join(lb.AZs, ", ")},
+	}
+	d.copyItems = d.copyItems[:0]
+	for _, c := range candidates {
+		if c.Value != "" {
+			d.copyItems = append(d.copyItems, c)
+		}
+	}
+	d.copyCursor = 0
+	d.copyOpen = true
+}
+
+// CloseCopyMenu hides the overlay.
+func (d *ELBDetail) CloseCopyMenu() { d.copyOpen = false }
+
+// CopyMenuUp / CopyMenuDown move the overlay cursor.
+func (d *ELBDetail) CopyMenuUp() {
+	if d.copyCursor > 0 {
+		d.copyCursor--
+	}
+}
+
+func (d *ELBDetail) CopyMenuDown() {
+	if d.copyCursor < len(d.copyItems)-1 {
+		d.copyCursor++
+	}
+}
+
+// SelectedCopyField returns the highlighted field of the copy menu.
+func (d *ELBDetail) SelectedCopyField() (CopyField, bool) {
+	if d.copyCursor < 0 || d.copyCursor >= len(d.copyItems) {
+		return CopyField{}, false
+	}
+	return d.copyItems[d.copyCursor], true
+}
+
+// renderCopyMenu renders the copy overlay: a bordered list of copyable fields.
+func (d *ELBDetail) renderCopyMenu() string {
+	var b strings.Builder
+	b.WriteString(detailCopyTitleStyle.Render(" Copy ") + "\n\n")
+	for i, f := range d.copyItems {
+		label := pad(f.Label, 13)
+		val := truncateRunes(f.Value, 48)
+		row := label + " " + val
+		if i == d.copyCursor {
+			b.WriteString("▶ " + detailCopySelStyle.Render(pad(row, 62)) + "\n")
+		} else {
+			b.WriteString("  " + detailCopyLabelStyle.Render(label) + " " + detailCopyValStyle.Render(val) + "\n")
+		}
+	}
+	b.WriteString("\n" + detailMutedStyle.Render("↑/↓ select · enter copy · esc close"))
+	return detailCopyBoxStyle.Render(b.String())
 }
 
 // NewELBDetail builds the detail page with both async blocks loading.
@@ -75,6 +146,9 @@ func (d *ELBDetail) View(spinner string) string {
 	out := title + "\n\n" + body
 	if total > shown {
 		out += "\n" + detailMutedStyle.Render(fmt.Sprintf("↑/↓ scroll (%d/%d)", d.scroll+1, total))
+	}
+	if d.copyOpen {
+		return title + "\n\n" + d.renderCopyMenu()
 	}
 	return out
 }
