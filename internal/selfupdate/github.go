@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"strings"
 	"time"
 )
 
@@ -33,8 +34,49 @@ type Asset struct {
 	Size               int64  `json:"size"`
 }
 
-// httpClient is the shared client with a sane timeout.
-var httpClient = &http.Client{Timeout: httpTimeout}
+// allowedRedirectHosts are the domains the self-updater is willing to follow a
+// redirect to. GitHub's release/API endpoints redirect asset downloads to its
+// own CDN (and historically to signed S3 URLs), so we allow those and nothing
+// else. This prevents a tampered or malicious redirect from pointing the updater
+// at an attacker-controlled host.
+var allowedRedirectHosts = []string{
+	"github.com",
+	"api.github.com",
+	"codeload.github.com",
+	"objects.githubusercontent.com",
+	"release-assets.githubusercontent.com",
+	"githubusercontent.com",
+	"amazonaws.com", // GitHub asset downloads historically 302 to signed S3 URLs
+}
+
+// hostAllowed reports whether host (or a parent domain) is in the allow-list.
+func hostAllowed(host string) bool {
+	host = strings.ToLower(host)
+	if i := strings.IndexByte(host, ':'); i >= 0 {
+		host = host[:i] // strip any port
+	}
+	for _, allowed := range allowedRedirectHosts {
+		if host == allowed || strings.HasSuffix(host, "."+allowed) {
+			return true
+		}
+	}
+	return false
+}
+
+// httpClient is the shared client with a sane timeout. CheckRedirect confines
+// redirects to known GitHub/AWS hosts and caps the redirect chain length.
+var httpClient = &http.Client{
+	Timeout: httpTimeout,
+	CheckRedirect: func(req *http.Request, via []*http.Request) error {
+		if len(via) >= 10 {
+			return fmt.Errorf("stopped after 10 redirects")
+		}
+		if !hostAllowed(req.URL.Hostname()) {
+			return fmt.Errorf("refusing redirect to untrusted host %q", req.URL.Hostname())
+		}
+		return nil
+	},
+}
 
 // LatestRelease fetches the latest published (non-draft, non-prerelease) release.
 func LatestRelease(ctx context.Context) (*Release, error) {
@@ -49,7 +91,7 @@ func LatestRelease(ctx context.Context) (*Release, error) {
 
 	resp, err := httpClient.Do(req)
 	if err != nil {
-		return nil, fmt.Errorf("contact de l'API GitHub: %w", err)
+		return nil, fmt.Errorf("contacting the GitHub API: %w", err)
 	}
 	defer resp.Body.Close()
 
@@ -58,7 +100,7 @@ func LatestRelease(ctx context.Context) (*Release, error) {
 	}
 	if resp.StatusCode != http.StatusOK {
 		body, _ := io.ReadAll(io.LimitReader(resp.Body, 512))
-		return nil, fmt.Errorf("API GitHub: statut %d: %s", resp.StatusCode, string(body))
+		return nil, fmt.Errorf("GitHub API: status %d: %s", resp.StatusCode, string(body))
 	}
 
 	var rel Release
