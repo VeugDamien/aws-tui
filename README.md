@@ -165,11 +165,11 @@ process tree (CLI + plugin) via `taskkill /T /F`.
 | EC2 | `↑/↓` · `←/→` scroll horizontally · `enter` details · `/` filter · `y` copy ID · `r` refresh · `s` SSM shell · `f` port-forward · `t` tunnels · `esc` back |
 | EC2 detail | `↑/↓` scroll · `y` copy ID · `Y` copy menu (IP, ARN, VPC…) · `m` metrics window (1h/3h/12h/24h) · `r` refresh · `esc` back |
 | Auto Scaling Groups | `↑/↓` navigate · `enter` details · `/` filter · `y` copy name · `r` refresh · `esc` back |
-| ASG detail | `↑/↓` scroll · `y` copy name · `r` refresh · `esc` back |
+| ASG detail | `↑/↓` scroll · `y` copy name · `Y` copy menu (ARN, subnets, zones…) · `r` refresh · `esc` back |
 | Load Balancers | `↑/↓` · `←/→` scroll · `enter` details · `/` filter · `y` copy DNS · `r` refresh · `esc` back |
-| LB detail | `↑/↓` scroll · `y` copy DNS · `r` refresh · `esc` back |
+| LB detail | `↑/↓` scroll · `y` copy DNS · `Y` copy menu (name, ARN, VPC…) · `r` refresh · `esc` back |
 | Port-forward (form) | `↑/↓` field · `tab` toggle remote host · `enter` start · `esc` cancel |
-| Tunnels | `↑/↓` navigate · `x` stop · `X` stop all · `esc` back |
+| Tunnels | `↑/↓` navigate · `x` stop · `X` stop all · `r` restart · `c` clear stopped · `esc` back |
 
 The interface separates **configuration** (persistent top bar: profile, region,
 account — editable via `p`/`g`/`L`) from **functional actions** (EC2, tunnels).

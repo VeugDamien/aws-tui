@@ -7,6 +7,7 @@
 #   make cross        build for all platforms into ./dist
 #   make test         run the tests
 #   make vet          go vet
+#   make lint         golangci-lint (requires golangci-lint installed)
 #   make check        vet + test
 #   make clean        remove bin/ and dist/
 #   make version      print the detected version
@@ -77,6 +78,10 @@ test:
 .PHONY: vet
 vet:
 	go vet ./...
+
+.PHONY: lint
+lint:
+	golangci-lint run
 
 .PHONY: check
 check: vet test

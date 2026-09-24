@@ -159,11 +159,19 @@ func (m AppModel) footer() string {
 	case ScreenASG:
 		hints = "↑/↓ navigate · enter details · / filter · y copy name · r refresh · esc back"
 	case ScreenASGDetail:
-		hints = "↑/↓ scroll · y copy name · r refresh · esc back"
+		if m.asgDetail.CopyMenuOpen() {
+			hints = "↑/↓ select · enter copy · esc close"
+		} else {
+			hints = "↑/↓ scroll · y copy name · Y copy… · r refresh · esc back"
+		}
 	case ScreenELB:
 		hints = "↑/↓ · ←/→ scroll · enter details · / filter · y copy DNS · r refresh · esc back"
 	case ScreenELBDetail:
-		hints = "↑/↓ scroll · y copy DNS · r refresh · esc back"
+		if m.elbDetail.CopyMenuOpen() {
+			hints = "↑/↓ select · enter copy · esc close"
+		} else {
+			hints = "↑/↓ scroll · y copy DNS · Y copy… · r refresh · esc back"
+		}
 	case ScreenEC2Detail:
 		if m.ec2Detail.CopyMenuOpen() {
 			hints = "↑/↓ select · enter copy · esc close"
@@ -173,7 +181,7 @@ func (m AppModel) footer() string {
 	case ScreenPortForwardForm:
 		hints = "↑/↓ field · tab remote host · enter start · esc cancel"
 	case ScreenTunnels:
-		hints = "↑/↓ navigate · x stop · X stop all · esc back"
+		hints = "↑/↓ navigate · x stop · X stop all · r restart · c clear stopped · esc back"
 	}
 	return helpStyle.Render(hints)
 }
@@ -197,7 +205,7 @@ func (m AppModel) viewActions() string {
 		label := menuKeyStyle.Render(it.key) + "  " + it.label
 		if i == m.actionCursor {
 			pointer = menuKeyStyle.Render("▶ ")
-			label = menuSelStyle.Render(it.key+"  "+it.label)
+			label = menuSelStyle.Render(it.key + "  " + it.label)
 		}
 		b.WriteString(pointer + menuItemStyle.Render(label) + "\n")
 	}
@@ -223,7 +231,7 @@ func (m AppModel) viewEC2() string {
 		if m.ec2.Filtering {
 			cursor = "█"
 		}
-		b.WriteString(fmt.Sprintf("Filter: %s%s\n", m.ec2.Filter, cursor))
+		fmt.Fprintf(&b, "Filter: %s%s\n", m.ec2.Filter, cursor)
 	}
 
 	b.WriteString(m.ec2.View())
@@ -245,7 +253,7 @@ func (m AppModel) viewASG() string {
 		if m.asg.Filtering {
 			cursor = "█"
 		}
-		b.WriteString(fmt.Sprintf("Filter: %s%s\n", m.asg.Filter, cursor))
+		fmt.Fprintf(&b, "Filter: %s%s\n", m.asg.Filter, cursor)
 	}
 
 	b.WriteString(m.asg.View())
@@ -267,7 +275,7 @@ func (m AppModel) viewELB() string {
 		if m.elb.Filtering {
 			cursor = "█"
 		}
-		b.WriteString(fmt.Sprintf("Filter: %s%s\n", m.elb.Filter, cursor))
+		fmt.Fprintf(&b, "Filter: %s%s\n", m.elb.Filter, cursor)
 	}
 
 	b.WriteString(m.elb.View())

@@ -1,0 +1,45 @@
+# golangci-lint configuration (schema v2).
+# Docs: https://golangci-lint.run/docs/configuration/file/
+version: "2"
+
+linters:
+  # Start from the curated default set (errcheck, govet, ineffassign,
+  # staticcheck, unused) and add a few low-noise extras.
+  default: standard
+  enable:
+    - misspell    # catches common spelling mistakes in comments/strings
+    - unconvert   # flags unnecessary type conversions
+    - revive      # fast, configurable style checker (golint successor)
+    - bodyclose   # ensures HTTP response bodies are closed
+
+  settings:
+    errcheck:
+      # Cleanup calls whose error is not actionable (defer/cleanup paths).
+      exclude-functions:
+        - (io.Closer).Close
+        - (*os.File).Close
+        - (*compress/gzip.Reader).Close
+        - (*archive/zip.ReadCloser).Close
+        - os.Remove
+    revive:
+      rules:
+        # min/max are used as local variable names in a few helpers; they do
+        # not shadow anything at call sites.
+        - name: redefines-builtin-id
+          disabled: true
+        # Small view/list helper types implement bubbletea interfaces; their
+        # methods are self-explanatory and don't each need a doc comment.
+        - name: exported
+          disabled: true
+
+  exclusions:
+    generated: lax
+    rules:
+      # Test files may keep unchecked errors and looser style.
+      - path: _test\.go
+        linters:
+          - errcheck
+
+formatters:
+  enable:
+    - gofmt

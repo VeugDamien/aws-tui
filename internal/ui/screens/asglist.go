@@ -11,12 +11,12 @@ import (
 
 // ASG table column widths.
 const (
-	colASGNameW    = 44
-	colASGCapW     = 16 // "min/des/max"
-	colASGInstW    = 12 // "healthy/total"
-	colASGLaunchW  = 22
-	colASGStatusW  = 12
-	colASGGutter   = 2
+	colASGNameW   = 44
+	colASGCapW    = 16 // "min/des/max"
+	colASGInstW   = 12 // "healthy/total"
+	colASGLaunchW = 22
+	colASGStatusW = 12
+	colASGGutter  = 2
 )
 
 var asgHeaders = []struct {

@@ -164,6 +164,51 @@ func (mgr *tunnelManager) stop(id int) {
 	}
 }
 
+// clearStopped removes every tunnel in a terminal state (stopped or failed) from
+// the registry. Running tunnels are left untouched. It returns the number removed.
+func (mgr *tunnelManager) clearStopped() int {
+	mgr.mu.Lock()
+	defer mgr.mu.Unlock()
+	kept := mgr.tunnels[:0]
+	removed := 0
+	for _, t := range mgr.tunnels {
+		if t.State == tunnelStopped || t.State == tunnelFailed {
+			removed++
+			continue
+		}
+		kept = append(kept, t)
+	}
+	mgr.tunnels = kept
+	return removed
+}
+
+// prepareRestart re-arms a stopped or failed tunnel for a fresh launch: it clears
+// the previous error/output and installs the given process, context cancel and
+// output buffer, moving the tunnel back to the starting state. It returns false if
+// the tunnel is missing or is not in a restartable (terminal) state.
+func (mgr *tunnelManager) prepareRestart(id int, proc *exec.Cmd, cancel context.CancelFunc, buf *safeBuffer) bool {
+	mgr.mu.Lock()
+	defer mgr.mu.Unlock()
+	for _, t := range mgr.tunnels {
+		if t.ID != id {
+			continue
+		}
+		if t.State != tunnelStopped && t.State != tunnelFailed {
+			return false
+		}
+		t.State = tunnelStarting
+		t.Err = nil
+		t.stopRequested = false
+		t.Started = time.Now()
+		t.proc = proc
+		t.cancel = cancel
+		t.buf = buf
+		t.done = make(chan error, 1)
+		return true
+	}
+	return false
+}
+
 // stopAll terminates every running tunnel (used on quit).
 func (mgr *tunnelManager) stopAll() {
 	mgr.mu.Lock()
