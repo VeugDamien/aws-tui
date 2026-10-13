@@ -5,6 +5,7 @@ import (
 	"context"
 	"fmt"
 	"os/exec"
+	"time"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
 	tea "github.com/charmbracelet/bubbletea"
@@ -13,9 +14,27 @@ import (
 	"github.com/VeugDamien/aws-tui/internal/awsclient"
 	"github.com/VeugDamien/aws-tui/internal/awsconfig"
 	"github.com/VeugDamien/aws-tui/internal/clipboard"
+	"github.com/VeugDamien/aws-tui/internal/selfupdate"
 	"github.com/VeugDamien/aws-tui/internal/ssm"
 	"github.com/VeugDamien/aws-tui/internal/state"
 )
+
+// checkUpdateCmd queries the latest release in the background and, if a newer
+// version than current exists, emits updateAvailableMsg. Any failure (offline,
+// API error, unparseable version) is swallowed: the check is best-effort and must
+// never interrupt the UI. Returns nil (no message) when up to date or on error.
+func checkUpdateCmd(current string) tea.Cmd {
+	return func() tea.Msg {
+		ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+		defer cancel()
+
+		status, err := selfupdate.CheckUpdate(ctx, current)
+		if err != nil || status == nil || !status.Available {
+			return nil
+		}
+		return updateAvailableMsg{latest: status.LatestVersion}
+	}
+}
 
 // loadProfilesCmd reads ~/.aws/config asynchronously.
 func loadProfilesCmd() tea.Cmd {

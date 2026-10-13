@@ -237,6 +237,12 @@ func (m AppModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		}
 		return m, nil
 
+	case updateAvailableMsg:
+		// Record the newer version so the header can show a discreet hint. This is
+		// purely informational and never interrupts the user.
+		m.updateVersion = msg.latest
+		return m, nil
+
 	case clipboardMsg:
 		if msg.err != nil {
 			m.err = fmt.Errorf("copy failed: %w", msg.err)

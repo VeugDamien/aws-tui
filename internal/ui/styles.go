@@ -50,6 +50,10 @@ var (
 	warnStyle = lipgloss.NewStyle().
 			Foreground(colorWarn)
 
+	updateHintStyle = lipgloss.NewStyle().
+			Foreground(colorOK).
+			Bold(true)
+
 	helpStyle = lipgloss.NewStyle().
 			Foreground(colorMuted)
 

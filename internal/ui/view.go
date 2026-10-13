@@ -103,12 +103,16 @@ func (m AppModel) statusBar() string {
 	return rule + "\n" + msg
 }
 
-// header renders the title line plus the active-tunnel counter.
+// header renders the title line, the active-tunnel counter and, when a newer
+// release is available, a discreet update hint.
 func (m AppModel) header() string {
 	title := titleStyle.Render(" aws-tui ")
 	right := ""
 	if n := m.tunnels.activeCount(); n > 0 {
-		right = "  " + warnStyle.Render(fmt.Sprintf("⇄ %d tunnel(s)", n))
+		right += "  " + warnStyle.Render(fmt.Sprintf("⇄ %d tunnel(s)", n))
+	}
+	if m.updateVersion != "" {
+		right += "  " + updateHintStyle.Render(fmt.Sprintf("↑ %s available — run: aws-tui upgrade", m.updateVersion))
 	}
 	return lipgloss.JoinHorizontal(lipgloss.Center, title, right)
 }

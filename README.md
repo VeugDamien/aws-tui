@@ -35,6 +35,9 @@ interactive SSM sessions are delegated to the AWS CLI v2.
   (bastion).
 - Copy to clipboard (`y`): profile name, instance ID; copy menu (`Y`) on the detail
   page (private/public IP, ARN, VPC, subnet, AMI…).
+- Non-blocking update check at startup: when a newer release is available, a
+  discreet hint appears in the header (run `aws-tui upgrade` to update). The check
+  is best-effort and silently ignored when offline.
 
 ## Requirements
 
