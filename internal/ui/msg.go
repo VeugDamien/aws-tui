@@ -101,6 +101,10 @@ type clipboardMsg struct {
 	err   error
 }
 
+// updateAvailableMsg is emitted by the non-blocking startup update check when a
+// newer release is available. latest is the newer version tag (e.g. "v0.3.0").
+type updateAvailableMsg struct{ latest string }
+
 // errMsg carries a non-fatal error to display.
 type errMsg struct{ err error }
 

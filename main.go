@@ -50,7 +50,7 @@ func main() {
 		os.Exit(1)
 	}
 
-	p := tea.NewProgram(ui.New(), tea.WithAltScreen())
+	p := tea.NewProgram(ui.New(version), tea.WithAltScreen())
 	if _, err := p.Run(); err != nil {
 		fmt.Fprintf(os.Stderr, "Fatal error: %v\n", err)
 		os.Exit(1)

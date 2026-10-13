@@ -87,11 +87,18 @@ type AppModel struct {
 	// startupDone guards the one-time restore of the last used profile.
 	startupDone bool
 
+	// version is the current build version (for the update check).
+	version string
+	// updateVersion is the latest release tag when a newer one is available,
+	// shown as a discreet header hint. Empty when up to date or unknown.
+	updateVersion string
+
 	width, height int
 }
 
-// New constructs the initial model.
-func New() AppModel {
+// New constructs the initial model. version is the current build version, used by
+// the non-blocking startup update check.
+func New(version string) AppModel {
 	sp := spinner.New()
 	sp.Spinner = spinner.Dot
 
@@ -104,14 +111,16 @@ func New() AppModel {
 		help:         h,
 		keys:         defaultKeyMap(),
 		tunnels:      newTunnelManager(),
+		version:      version,
 		loading:      true,
 		loadingMsg:   "Loading profiles…",
 	}
 }
 
-// Init kicks off the initial profile load and spinner.
+// Init kicks off the initial profile load, the spinner, and a non-blocking
+// check for a newer release.
 func (m AppModel) Init() tea.Cmd {
-	return tea.Batch(loadProfilesCmd(), m.spinner.Tick)
+	return tea.Batch(loadProfilesCmd(), checkUpdateCmd(m.version), m.spinner.Tick)
 }
 
 // currentProfile returns the awsconfig.Profile matching activeProfile.
