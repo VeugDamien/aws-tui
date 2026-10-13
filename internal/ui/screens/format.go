@@ -70,6 +70,114 @@ func maxInt(a, b int) int {
 	return b
 }
 
+// brailleDotBits maps a (col,row) position inside a 2x4 braille cell to the bit to
+// set in the base rune U+2800. Columns are 0..1 (left/right), rows 0..3 (top to
+// bottom). This matches the Unicode braille dot numbering.
+var brailleDotBits = [2][4]rune{
+	{0x01, 0x02, 0x04, 0x40}, // left column:  dots 1,2,3,7
+	{0x08, 0x10, 0x20, 0x80}, // right column: dots 4,5,6,8
+}
+
+// BrailleGraph renders values as a multi-line braille plot of the given character
+// width and height. Each cell packs a 2x4 dot grid, so the effective resolution is
+// (width*2) horizontal samples by (height*4) vertical levels — far finer than a
+// one-line sparkline. Values are scaled against a zero-based axis using scaleMax
+// (pass the series max, or 100 for percentages) so magnitudes stay comparable.
+// It returns exactly height lines, top (highest value) to bottom.
+func BrailleGraph(values []float64, width, height int, scaleMax float64) []string {
+	if width <= 0 {
+		width = 1
+	}
+	if height <= 0 {
+		height = 1
+	}
+	lines := make([]string, height)
+	if len(values) == 0 {
+		blank := strings.Repeat(" ", width)
+		for i := range lines {
+			lines[i] = blank
+		}
+		return lines
+	}
+
+	cols := width * 2  // horizontal dot columns
+	rows := height * 4 // vertical dot rows
+	pts := resample(values, cols)
+
+	if scaleMax <= 0 {
+		// Fall back to the data max so a flat-zero series still renders cleanly.
+		for _, v := range pts {
+			if v > scaleMax {
+				scaleMax = v
+			}
+		}
+		if scaleMax <= 0 {
+			scaleMax = 1
+		}
+	}
+
+	// grid[cellRow][cellCol] accumulates dot bits.
+	grid := make([][]rune, height)
+	for r := range grid {
+		grid[r] = make([]rune, width)
+	}
+
+	for x, v := range pts {
+		// Height in dot-rows from the bottom, clamped to [0, rows].
+		frac := v / scaleMax
+		if frac < 0 {
+			frac = 0
+		}
+		if frac > 1 {
+			frac = 1
+		}
+		filled := int(math.Round(frac * float64(rows)))
+		cellCol := x / 2
+		dotCol := x % 2
+		// Light every dot-row from the bottom up to filled (bar-style), which reads
+		// much better than a single-pixel line on a terminal.
+		for dr := 0; dr < filled; dr++ {
+			// dr counts from the bottom; convert to top-based row index.
+			rowFromTop := rows - 1 - dr
+			cellRow := rowFromTop / 4
+			dotRow := rowFromTop % 4
+			grid[cellRow][cellCol] |= brailleDotBits[dotCol][dotRow]
+		}
+	}
+
+	for r := 0; r < height; r++ {
+		var sb strings.Builder
+		for c := 0; c < width; c++ {
+			sb.WriteRune(0x2800 + grid[r][c])
+		}
+		lines[r] = sb.String()
+	}
+	return lines
+}
+
+// resample maps values onto exactly n points (averaging when downsampling,
+// nearest-neighbour when upsampling), reusing the existing helpers.
+func resample(values []float64, n int) []float64 {
+	switch {
+	case n <= 0:
+		return nil
+	case len(values) == n:
+		return values
+	case len(values) > n:
+		return downsample(values, n)
+	default:
+		pts := make([]float64, n)
+		for i := 0; i < n; i++ {
+			src := i * len(values) / n
+			if src >= len(values) {
+				src = len(values) - 1
+			}
+			pts[i] = values[src]
+		}
+		return pts
+	}
+}
+
 func downsample(values []float64, n int) []float64 {
 	out := make([]float64, n)
 	bucket := float64(len(values)) / float64(n)
