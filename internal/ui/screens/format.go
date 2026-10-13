@@ -122,6 +122,10 @@ func BrailleGraph(values []float64, width, height int, scaleMax float64) []strin
 		grid[r] = make([]rune, width)
 	}
 
+	// lineThickness is the number of dot-rows lit at each value (line mode). A
+	// value of 2 keeps the trace visible without filling the area underneath.
+	const lineThickness = 2
+
 	for x, v := range pts {
 		// Height in dot-rows from the bottom, clamped to [0, rows].
 		frac := v / scaleMax
@@ -131,13 +135,19 @@ func BrailleGraph(values []float64, width, height int, scaleMax float64) []strin
 		if frac > 1 {
 			frac = 1
 		}
-		filled := int(math.Round(frac * float64(rows)))
+		// Dot-row of the value, counted from the bottom (0-based). A zero value
+		// sits on the bottom row; the scale max on the top row.
+		level := int(math.Round(frac * float64(rows-1)))
 		cellCol := x / 2
 		dotCol := x % 2
-		// Light every dot-row from the bottom up to filled (bar-style), which reads
-		// much better than a single-pixel line on a terminal.
-		for dr := 0; dr < filled; dr++ {
-			// dr counts from the bottom; convert to top-based row index.
+		// Line mode: light only the dots at (and just below) the value level, so a
+		// flat high series reads as a thin line near the top rather than a solid
+		// block filling the whole area.
+		for t := 0; t < lineThickness; t++ {
+			dr := level - t
+			if dr < 0 {
+				break
+			}
 			rowFromTop := rows - 1 - dr
 			cellRow := rowFromTop / 4
 			dotRow := rowFromTop % 4

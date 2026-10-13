@@ -85,8 +85,8 @@ func hasDots(line string) bool {
 }
 
 func TestBrailleGraphScaling(t *testing.T) {
-	// A flat series at the scale max should fill the whole column (top row set);
-	// a flat series at zero should leave the top row blank.
+	// A flat series at the scale max should light the top row; a flat series at
+	// zero should leave the top row blank (its trace sits on the bottom row).
 	full := BrailleGraph([]float64{100, 100, 100, 100}, 8, 3, 100)
 	if !hasDots(full[0]) {
 		t.Error("series at scale max should light the top row")
@@ -94,5 +94,26 @@ func TestBrailleGraphScaling(t *testing.T) {
 	zero := BrailleGraph([]float64{0, 0, 0, 0}, 8, 3, 100)
 	if hasDots(zero[0]) {
 		t.Error("series at zero should leave the top row blank")
+	}
+}
+
+// TestBrailleGraphLineMode verifies the plot draws a thin line at the value level
+// rather than filling the area underneath (bar mode). A flat-high series must
+// leave the lower rows empty.
+func TestBrailleGraphLineMode(t *testing.T) {
+	// Flat series near the scale max over a tall graph.
+	vals := make([]float64, 20)
+	for i := range vals {
+		vals[i] = 95
+	}
+	lines := BrailleGraph(vals, 20, 4, 100) // 4 rows tall
+
+	// Top row should carry the trace.
+	if !hasDots(lines[0]) {
+		t.Fatal("expected the trace near the top row")
+	}
+	// The bottom rows must stay empty: in bar mode they would be fully lit.
+	if hasDots(lines[len(lines)-1]) {
+		t.Error("line mode should not fill the bottom row for a high flat series")
 	}
 }
