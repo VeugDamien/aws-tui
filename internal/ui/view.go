@@ -34,6 +34,8 @@ func (m AppModel) View() string {
 		body = m.viewELB()
 	case ScreenELBDetail:
 		body = m.elbDetail.View(m.spinner.View())
+	case ScreenLoginConfirm:
+		body = m.viewLoginConfirm()
 	case ScreenPortForwardForm:
 		body = m.viewPFForm()
 	case ScreenTunnels:
@@ -182,6 +184,8 @@ func (m AppModel) footer() string {
 		} else {
 			hints = "↑/↓ scroll · y copy ID · Y copy… · s session · f port-forward · m metrics · r refresh · esc back"
 		}
+	case ScreenLoginConfirm:
+		hints = "enter log in · esc cancel"
 	case ScreenPortForwardForm:
 		hints = "↑/↓ field · tab remote host · enter start · esc cancel"
 	case ScreenTunnels:
@@ -195,6 +199,26 @@ func (m AppModel) viewProfiles() string {
 		return warnStyle.Render("No profile found in ~/.aws/config.")
 	}
 	return m.profileList.View()
+}
+
+// viewLoginConfirm renders the confirmation shown before an interactive login,
+// naming the profile so the user knows exactly which account they are about to
+// authenticate (the account number is only known after login).
+func (m AppModel) viewLoginConfirm() string {
+	p := m.loginProfile
+	region := m.activeRegion
+
+	var b strings.Builder
+	b.WriteString(subtitleStyle.Render("Login required") + "\n\n")
+	b.WriteString("A browser login is needed to connect this profile:\n\n")
+	b.WriteString(labelStyle.Render("Profile") + configValStyle.Render(p.Name) + "\n")
+	b.WriteString(labelStyle.Render("Region") + configValStyle.Render(region) + "\n")
+	b.WriteString(labelStyle.Render("Auth") + configValStyle.Render(p.AuthKind.String()) + "\n")
+	if p.SSOSession != "" {
+		b.WriteString(labelStyle.Render("SSO session") + configValStyle.Render(p.SSOSession) + "\n")
+	}
+	b.WriteString("\n" + helpStyle.Render("Press enter to open the browser login, esc to cancel."))
+	return panelStyle.Render(b.String())
 }
 
 // viewActions renders the actions hub: only functional actions. Configuration

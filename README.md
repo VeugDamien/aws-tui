@@ -38,6 +38,10 @@ interactive SSM sessions are delegated to the AWS CLI v2.
 - Non-blocking update check at startup: when a newer release is available, a
   discreet hint appears in the header (run `aws-tui upgrade` to update). The check
   is best-effort and silently ignored when offline.
+- Login confirmation: when a login is required outside an explicit profile
+  selection (startup restore, token expiry), a confirmation screen names the
+  profile/region/auth type before opening the browser login. Manually selecting a
+  profile logs in directly.
 
 ## Requirements
 
@@ -163,6 +167,7 @@ process tree (CLI + plugin) via `taskkill /T /F`.
 | Global | `?` help · `q` / `Ctrl+C` quit |
 | Config (from any action screen) | `p` change profile · `g` change region · `L` logout |
 | Profiles | `↑/↓` navigate · `/` filter · `y` copy name · `enter` select · `esc` cancel |
+| Login confirmation | `enter` log in · `esc` cancel |
 | Actions | `↑/↓` navigate · `enter` confirm · (`e` EC2 · `a` ASG · `b` Load Balancers · `t` tunnels) |
 | Regions | `↑/↓` · `/` filter · `enter` select · `esc` cancel |
 | EC2 | `↑/↓` · `←/→` scroll horizontally · `enter` details · `/` filter · `y` copy ID · `r` refresh · `s` SSM shell · `f` port-forward · `t` tunnels · `esc` back |

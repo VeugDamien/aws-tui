@@ -50,7 +50,8 @@ func (m AppModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			if p, ok := m.lastProfile(); ok {
 				// Show the loading over the Actions context, not the profile list.
 				m.screen = ScreenActions
-				return m.connectToProfile(p)
+				// Automatic restore: a required login will be confirmed first.
+				return m.connectToProfile(p, false)
 			}
 			// Nothing memorised (or profile gone): land on Actions, not connected.
 			m.screen = ScreenActions
@@ -90,9 +91,21 @@ func (m AppModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		return m, nil
 
 	case authRequiredMsg:
-		m.loading = true
-		m.loadingMsg = fmt.Sprintf("Authenticating profile %q…", msg.profile.Name)
-		return m, loginCmd(msg.profile)
+		// A manual profile selection logs in immediately; any other context
+		// (startup restore, token expiry during an action) first shows a
+		// confirmation screen naming the profile so the user knows what they are
+		// authenticating.
+		if m.autoLogin {
+			m.loading = true
+			m.loadingMsg = fmt.Sprintf("Authenticating profile %q…", msg.profile.Name)
+			return m, loginCmd(msg.profile)
+		}
+		m.loading = false
+		m.loadingMsg = ""
+		m.loginProfile = msg.profile
+		m.loginConfirmReturn = m.screen
+		m.screen = ScreenLoginConfirm
+		return m, nil
 
 	case loginDoneMsg:
 		if msg.err != nil {
@@ -370,6 +383,8 @@ func (m AppModel) handleKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		return m.updateELB(msg)
 	case ScreenELBDetail:
 		return m.updateELBDetail(msg)
+	case ScreenLoginConfirm:
+		return m.updateLoginConfirm(msg)
 	case ScreenPortForwardForm:
 		return m.updatePFForm(msg)
 	case ScreenTunnels:
@@ -406,6 +421,32 @@ func (m AppModel) isTyping() bool {
 		return true
 	}
 	return false
+}
+
+// updateLoginConfirm handles the login confirmation screen: enter launches the
+// interactive login for the pending profile, esc cancels and returns.
+func (m AppModel) updateLoginConfirm(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
+	switch {
+	case key.Matches(msg, m.keys.Enter):
+		p := m.loginProfile
+		m.loading = true
+		m.loadingMsg = fmt.Sprintf("Authenticating profile %q…", p.Name)
+		// Returning to the originating screen is handled by whoamiMsg via
+		// returnOrActions once the login succeeds.
+		m.screen = m.loginConfirmReturn
+		return m, loginCmd(p)
+	case key.Matches(msg, m.keys.Back):
+		// Cancel: drop back to the originating screen without logging in.
+		m.loading = false
+		m.loadingMsg = ""
+		dest := m.loginConfirmReturn
+		if dest == ScreenLoginConfirm {
+			dest = ScreenActions
+		}
+		m.screen = dest
+		return m, nil
+	}
+	return m, nil
 }
 
 func (m AppModel) updateProfiles(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
@@ -451,7 +492,9 @@ func (m AppModel) updateProfiles(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		return m, nil
 	case key.Matches(msg, m.keys.Enter):
 		if p, ok := m.profileList.SelectedProfile(); ok {
-			return m.connectToProfile(p)
+			// Manual selection: the user just chose this profile, so an ensuing
+			// login does not need a confirmation screen.
+			return m.connectToProfile(p, true)
 		}
 		return m, nil
 	}
@@ -459,10 +502,13 @@ func (m AppModel) updateProfiles(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 }
 
 // connectToProfile sets the given profile active, clears cached state and starts
-// identity verification (and login if needed). Shared by manual selection and the
-// startup restore of the last used profile.
-func (m AppModel) connectToProfile(p awsconfig.Profile) (tea.Model, tea.Cmd) {
+// identity verification (and login if needed). manual is true when the user
+// explicitly selected the profile from the list, in which case a subsequent login
+// skips the confirmation screen (they just chose it). Automatic connections (e.g.
+// startup restore) leave manual=false so a required login is confirmed first.
+func (m AppModel) connectToProfile(p awsconfig.Profile, manual bool) (tea.Model, tea.Cmd) {
 	m.activeProfile = p.Name
+	m.autoLogin = manual
 	if p.Region != "" {
 		m.activeRegion = p.Region
 	} else {

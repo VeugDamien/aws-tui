@@ -30,6 +30,7 @@ const (
 	ScreenASGDetail
 	ScreenELB
 	ScreenELBDetail
+	ScreenLoginConfirm
 )
 
 const defaultRegion = "eu-west-3"
@@ -86,6 +87,15 @@ type AppModel struct {
 
 	// startupDone guards the one-time restore of the last used profile.
 	startupDone bool
+
+	// loginProfile is the profile awaiting login confirmation on ScreenLoginConfirm.
+	loginProfile awsconfig.Profile
+	// loginConfirmReturn is the screen to return to if the user cancels the
+	// login confirmation.
+	loginConfirmReturn Screen
+	// autoLogin is true when the current login was triggered by an explicit
+	// manual profile selection, so the confirmation screen is skipped.
+	autoLogin bool
 
 	// version is the current build version (for the update check).
 	version string
