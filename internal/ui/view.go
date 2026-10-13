@@ -101,20 +101,20 @@ func (m AppModel) View() string {
 func (m AppModel) statusBar() string {
 	width := m.contentWidth()
 	rule := statusRuleStyle.Render(strings.Repeat("─", width))
-	msg := statusLineStyle.Render("• " + m.statusMsg)
+	msg := selBarStyle.Render("▎") + " " + statusLineStyle.Render(m.statusMsg)
 	return rule + "\n" + msg
 }
 
 // header renders the title line, the active-tunnel counter and, when a newer
 // release is available, a discreet update hint.
 func (m AppModel) header() string {
-	title := titleStyle.Render(" aws-tui ")
+	title := titleStyle.Render("aws-tui")
 	right := ""
 	if n := m.tunnels.activeCount(); n > 0 {
-		right += "  " + warnStyle.Render(fmt.Sprintf("⇄ %d tunnel(s)", n))
+		right += "   " + lipgloss.NewStyle().Foreground(colorAccent2).Render(fmt.Sprintf("⇄ %d tunnel(s)", n))
 	}
 	if m.updateVersion != "" {
-		right += "  " + updateHintStyle.Render(fmt.Sprintf("↑ %s available — run: aws-tui upgrade", m.updateVersion))
+		right += "   " + updateHintStyle.Render(fmt.Sprintf("↑ %s available — run: aws-tui upgrade", m.updateVersion))
 	}
 	return lipgloss.JoinHorizontal(lipgloss.Center, title, right)
 }
@@ -209,7 +209,7 @@ func (m AppModel) viewLoginConfirm() string {
 	region := m.activeRegion
 
 	var b strings.Builder
-	b.WriteString(subtitleStyle.Render("Login required") + "\n\n")
+	b.WriteString(sectionTitleStyle.Render("Login required") + "\n\n")
 	b.WriteString("A browser login is needed to connect this profile:\n\n")
 	b.WriteString(labelStyle.Render("Profile") + configValStyle.Render(p.Name) + "\n")
 	b.WriteString(labelStyle.Render("Region") + configValStyle.Render(region) + "\n")
@@ -226,14 +226,14 @@ func (m AppModel) viewLoginConfirm() string {
 func (m AppModel) viewActions() string {
 	var b strings.Builder
 
-	b.WriteString(subtitleStyle.Render("Actions") + "\n\n")
+	b.WriteString(sectionTitleStyle.Render("Actions") + "\n\n")
 
 	for i, it := range m.actionItems() {
 		pointer := "  "
-		label := menuKeyStyle.Render(it.key) + "  " + it.label
+		label := menuKeyStyle.Render(it.key) + "  " + subtitleStyle.Render(it.label)
 		if i == m.actionCursor {
-			pointer = menuKeyStyle.Render("▶ ")
-			label = menuSelStyle.Render(it.key + "  " + it.label)
+			pointer = selBarStyle.Render("▎ ")
+			label = menuKeyStyle.Render(it.key) + "  " + menuSelStyle.Render(it.label)
 		}
 		b.WriteString(pointer + menuItemStyle.Render(label) + "\n")
 	}
@@ -252,7 +252,7 @@ func (m AppModel) viewEC2() string {
 	var b strings.Builder
 
 	header := fmt.Sprintf("EC2 instances — %d/%d", m.ec2.Count(), m.ec2.TotalCount())
-	b.WriteString(subtitleStyle.Render(header) + "\n")
+	b.WriteString(sectionTitleStyle.Render(header) + "\n")
 
 	if m.ec2.Filtering || m.ec2.Filter != "" {
 		cursor := ""
@@ -274,7 +274,7 @@ func (m AppModel) viewASG() string {
 	var b strings.Builder
 
 	header := fmt.Sprintf("Auto Scaling Groups — %d/%d", m.asg.Count(), m.asg.TotalCount())
-	b.WriteString(subtitleStyle.Render(header) + "\n")
+	b.WriteString(sectionTitleStyle.Render(header) + "\n")
 
 	if m.asg.Filtering || m.asg.Filter != "" {
 		cursor := ""
@@ -296,7 +296,7 @@ func (m AppModel) viewELB() string {
 	var b strings.Builder
 
 	header := fmt.Sprintf("Load Balancers — %d/%d", m.elb.Count(), m.elb.TotalCount())
-	b.WriteString(subtitleStyle.Render(header) + "\n")
+	b.WriteString(sectionTitleStyle.Render(header) + "\n")
 
 	if m.elb.Filtering || m.elb.Filter != "" {
 		cursor := ""
@@ -326,7 +326,7 @@ func (m AppModel) viewPFForm() string {
 		tgt = fmt.Sprintf("%s (%s)", m.pfForm.TargetName, m.pfForm.Target)
 	}
 
-	b.WriteString(subtitleStyle.Render("Port-forward "+mode) + "\n")
+	b.WriteString(sectionTitleStyle.Render("Port-forward "+mode) + "\n")
 	b.WriteString(labelStyle.Render("Target") + tgt + "\n\n")
 	b.WriteString(m.pfForm.View())
 	return panelStyle.Render(b.String())
@@ -339,12 +339,12 @@ func (m AppModel) viewTunnels() string {
 	}
 
 	var b strings.Builder
-	b.WriteString(subtitleStyle.Render(fmt.Sprintf("Tunnels (%d)", len(tunnels))) + "\n\n")
+	b.WriteString(sectionTitleStyle.Render(fmt.Sprintf("Tunnels (%d)", len(tunnels))) + "\n\n")
 
 	for i, t := range tunnels {
 		cursor := "  "
 		if i == m.tunnelCursor {
-			cursor = menuKeyStyle.Render("▶ ")
+			cursor = selBarStyle.Render("▎ ")
 		}
 
 		var state string

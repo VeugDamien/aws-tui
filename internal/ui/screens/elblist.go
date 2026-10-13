@@ -32,15 +32,15 @@ var elbHeaders = []struct {
 var (
 	elbHeaderStyle = lipgloss.NewStyle().
 			Bold(true).
-			Foreground(lipgloss.Color("63"))
+			Foreground(paletteAccent)
 
 	elbSelectedStyle = lipgloss.NewStyle().
 				Bold(true).
-				Foreground(lipgloss.Color("230")).
-				Background(lipgloss.Color("63"))
+				Foreground(lipgloss.AdaptiveColor{Light: "231", Dark: "236"}).
+				Background(paletteAccent)
 
 	elbScrollHintStyle = lipgloss.NewStyle().
-				Foreground(lipgloss.Color("241"))
+				Foreground(paletteMuted)
 )
 
 // ELBTable is a filterable table over ELBv2 load balancers with horizontal

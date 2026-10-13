@@ -100,9 +100,9 @@ func (d *ASGDetail) renderCopyMenu() string {
 }
 
 var (
-	asgHealthyStyle   = lipgloss.NewStyle().Foreground(lipgloss.Color("78"))
-	asgUnhealthyStyle = lipgloss.NewStyle().Foreground(lipgloss.Color("203"))
-	asgPendingStyle   = lipgloss.NewStyle().Foreground(lipgloss.Color("214"))
+	asgHealthyStyle   = lipgloss.NewStyle().Foreground(paletteOK)
+	asgUnhealthyStyle = lipgloss.NewStyle().Foreground(paletteError)
+	asgPendingStyle   = lipgloss.NewStyle().Foreground(paletteWarn)
 )
 
 // NewASGDetail builds the detail page with both async blocks loading.

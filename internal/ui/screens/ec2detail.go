@@ -169,73 +169,66 @@ func (d *EC2Detail) ScrollDown(n int) {
 var (
 	detailTitleStyle = lipgloss.NewStyle().
 				Bold(true).
-				Foreground(lipgloss.Color("230")).
-				Background(lipgloss.Color("63")).
-				Padding(0, 1)
+				Foreground(paletteAccent)
 
 	detailSectionStyle = lipgloss.NewStyle().
 				Bold(true).
-				Foreground(lipgloss.Color("63")).
+				Foreground(paletteAccent).
 				Border(lipgloss.NormalBorder(), false, false, true, false).
-				BorderForeground(lipgloss.Color("240"))
+				BorderForeground(paletteBorder)
 
 	detailLabelStyle = lipgloss.NewStyle().
-				Foreground(lipgloss.Color("250")).
+				Foreground(paletteSubtle).
 				Width(18)
 
-	detailMutedStyle = lipgloss.NewStyle().Foreground(lipgloss.Color("241"))
-	detailErrStyle   = lipgloss.NewStyle().Foreground(lipgloss.Color("203"))
-	detailOKStyle    = lipgloss.NewStyle().Foreground(lipgloss.Color("78"))
+	detailMutedStyle = lipgloss.NewStyle().Foreground(paletteMuted)
+	detailErrStyle   = lipgloss.NewStyle().Foreground(paletteError)
+	detailOKStyle    = lipgloss.NewStyle().Foreground(paletteOK)
 
 	detailMetricsBoxStyle = lipgloss.NewStyle().
 				Border(lipgloss.RoundedBorder()).
-				BorderForeground(lipgloss.Color("63")).
+				BorderForeground(paletteAccent).
 				Padding(0, 1)
 
 	detailMetricsTitleStyle = lipgloss.NewStyle().
 				Bold(true).
-				Foreground(lipgloss.Color("63"))
+				Foreground(paletteAccent)
 
 	detailMetricLabelStyle = lipgloss.NewStyle().
 				Bold(true).
-				Foreground(lipgloss.Color("250"))
+				Foreground(paletteFg)
 
 	detailSparkStyle = lipgloss.NewStyle().
-				Foreground(lipgloss.Color("78"))
+				Foreground(paletteAccent2)
 
 	detailAxisStyle = lipgloss.NewStyle().
-			Foreground(lipgloss.Color("240"))
+			Foreground(paletteBorder)
 
 	detailWindowActiveStyle = lipgloss.NewStyle().
 				Bold(true).
-				Foreground(lipgloss.Color("230")).
-				Background(lipgloss.Color("63")).
-				Padding(0, 1)
+				Foreground(paletteAccent)
 
 	detailTagStyle = lipgloss.NewStyle().
-			Foreground(lipgloss.Color("250"))
+			Foreground(paletteSubtle)
 
 	detailCopyBoxStyle = lipgloss.NewStyle().
 				Border(lipgloss.RoundedBorder()).
-				BorderForeground(lipgloss.Color("63")).
+				BorderForeground(paletteAccent).
 				Padding(0, 1)
 
 	detailCopyTitleStyle = lipgloss.NewStyle().
 				Bold(true).
-				Foreground(lipgloss.Color("230")).
-				Background(lipgloss.Color("63")).
-				Padding(0, 1)
+				Foreground(paletteAccent)
 
 	detailCopySelStyle = lipgloss.NewStyle().
 				Bold(true).
-				Foreground(lipgloss.Color("230")).
-				Background(lipgloss.Color("57"))
+				Foreground(paletteFg)
 
 	detailCopyLabelStyle = lipgloss.NewStyle().
-				Foreground(lipgloss.Color("250"))
+				Foreground(paletteSubtle)
 
 	detailCopyValStyle = lipgloss.NewStyle().
-				Foreground(lipgloss.Color("252"))
+				Foreground(paletteFg)
 )
 
 // View renders the detail page as two columns: a scrollable left column
