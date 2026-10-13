@@ -39,6 +39,7 @@ interactive SSM sessions are delegated to the AWS CLI v2.
 - Non-blocking update check at startup: when a newer release is available, a
   discreet hint appears in the header (run `aws-tui upgrade` to update). The check
   is best-effort and silently ignored when offline.
+- Vivid cyan/blue theme that adapts automatically to light and dark terminals.
 - Login confirmation: when a login is required outside an explicit profile
   selection (startup restore, token expiry), a confirmation screen names the
   profile/region/auth type before opening the browser login. Manually selecting a

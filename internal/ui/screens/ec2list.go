@@ -36,15 +36,15 @@ var ec2Headers = []struct {
 var (
 	ec2HeaderStyle = lipgloss.NewStyle().
 			Bold(true).
-			Foreground(lipgloss.Color("63"))
+			Foreground(paletteAccent)
 
 	ec2SelectedStyle = lipgloss.NewStyle().
 				Bold(true).
-				Foreground(lipgloss.Color("230")).
-				Background(lipgloss.Color("63"))
+				Foreground(lipgloss.AdaptiveColor{Light: "231", Dark: "236"}).
+				Background(paletteAccent)
 
 	ec2ScrollHintStyle = lipgloss.NewStyle().
-				Foreground(lipgloss.Color("241"))
+				Foreground(paletteMuted)
 )
 
 // EC2Table is a custom table over the instance list supporting text filtering,

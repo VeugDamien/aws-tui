@@ -12,21 +12,18 @@ import (
 // Styles for the grouped profile list. Kept here (screens package) so the widget
 // is self-contained and reusable independently of the root ui styles.
 var (
-	plColorAccent = lipgloss.Color("63")  // purple
-	plColorMuted  = lipgloss.Color("241") // gray
-	plColorSubtle = lipgloss.Color("250")
-	plColorText   = lipgloss.Color("252")
-	plColorSSO    = lipgloss.Color("78")  // green
-	plColorDep    = lipgloss.Color("214") // orange
-	plColorStand  = lipgloss.Color("111") // blue
-	plColorSelBg  = lipgloss.Color("57")  // selection background
-	plColorSelFg  = lipgloss.Color("230") // selection foreground
+	plColorMuted  = paletteMuted
+	plColorSubtle = paletteSubtle
+	plColorText   = paletteFg
+	plColorSSO    = paletteOK                                         // green (SSO)
+	plColorDep    = paletteWarn                                       // amber (derived)
+	plColorStand  = paletteAccent2                                    // blue (standalone)
+	plColorSelBg  = paletteAccent                                     // selection background
+	plColorSelFg  = lipgloss.AdaptiveColor{Light: "231", Dark: "236"} // selection foreground
 
 	plTitleStyle = lipgloss.NewStyle().
 			Bold(true).
-			Foreground(lipgloss.Color("230")).
-			Background(plColorAccent).
-			Padding(0, 1)
+			Foreground(paletteAccent)
 
 	plHeaderSSO = lipgloss.NewStyle().
 			Bold(true).
