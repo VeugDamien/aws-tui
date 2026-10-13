@@ -23,8 +23,8 @@ interactive SSM sessions are delegated to the AWS CLI v2.
 - Filterable EC2 instance list (Name, ID, state, type, private IP, AZ), with
   horizontal scrolling for narrow terminals.
 - Per-instance detail page (`enter`): general information, security groups
-  (inbound/outbound rules), CloudWatch metrics (CPU, network) drawn as multi-line
-  braille graphs with a zero-based Y axis, over an adjustable window
+  (inbound/outbound rules), CloudWatch metrics (CPU, network) drawn as block
+  sparklines auto-scaled from zero to the series peak, over an adjustable window
   (1h / 3h / 12h / 24h, `m` key).
 - Auto Scaling Groups: list (min/desired/max capacities, healthy instances) and
   detail page (configuration, instances with health, target groups, recent

@@ -532,17 +532,14 @@ func (d *EC2Detail) metricsPeriodLabel() string {
 	return fmt.Sprintf("Window %s · 1 pt/%dmin · [m] change", MetricWindowLabel(win), per)
 }
 
-// graphHeight is the number of character rows used for each metric's braille plot.
-const graphHeight = 3
-
-// renderMetric renders one metric: a label, a multi-line braille plot with a
-// zero-based Y axis (top = scale max, bottom = 0), a time axis and summary stats.
+// renderMetric renders one metric on a single line: a label, a one-line sparkline
+// auto-scaled from 0 to the series max (so the peak reaches full height), a time
+// axis, and summary stats. The scale peak is shown so the bar heights are legible.
 func renderMetric(s awsclient.MetricSeries, bytesUnit bool, inner, windowMin int) string {
 	if s.Label == "" {
 		return detailMutedStyle.Render("(unavailable)")
 	}
 
-	// Formatter for a value in this metric's unit.
 	fmtVal := func(v float64) string {
 		if bytesUnit {
 			return humanBytes(v)
@@ -550,61 +547,33 @@ func renderMetric(s awsclient.MetricSeries, bytesUnit bool, inner, windowMin int
 		return fmt.Sprintf("%.1f%%", v)
 	}
 
-	// Scale: percentages use a fixed 0-100 axis; bytes scale to the series max so
-	// their (highly variable) magnitude stays readable.
+	// Auto scale: zero baseline up to the series max, so small-but-varying series
+	// (e.g. low CPU) still show their shape.
 	scaleMax := s.Max
-	if !bytesUnit {
-		scaleMax = 100
-	}
 	if scaleMax <= 0 {
 		scaleMax = 1
 	}
 
-	// Reserve a left gutter for the Y-axis labels, then draw the plot in the rest.
-	axisLabel := fmtVal(scaleMax)
-	gutterW := len([]rune(axisLabel))
-	if z := len("0"); z > gutterW {
-		gutterW = z
-	}
-	graphW := inner - gutterW - 1 // 1 space between gutter and plot
-	if graphW < 12 {
-		graphW = 12
+	// A left gutter holds the scale peak so the reader knows what full height means.
+	peak := fmtVal(scaleMax)
+	gutterW := len([]rune(peak))
+	sparkW := inner - gutterW - 1
+	if sparkW < 12 {
+		sparkW = 12
 	}
 
-	plot := BrailleGraph(s.Values, graphW, graphHeight, scaleMax)
+	spark := SparklineScaled(s.Values, sparkW, scaleMax)
+	axis := timeAxis(windowMin, sparkW)
 
-	// Y-axis labels: max on the top row, 0 on the bottom row, blank in between.
 	var b strings.Builder
 	b.WriteString(detailMetricLabelStyle.Render(s.Label) + "\n")
-	for i, line := range plot {
-		var gutter string
-		switch i {
-		case 0:
-			gutter = padLeft(axisLabel, gutterW)
-		case len(plot) - 1:
-			gutter = padLeft("0", gutterW)
-		default:
-			gutter = strings.Repeat(" ", gutterW)
-		}
-		b.WriteString(detailAxisStyle.Render(gutter) + " " + detailSparkStyle.Render(line) + "\n")
-	}
-
-	// Time axis aligned under the plot (indented past the gutter).
-	axis := timeAxis(windowMin, graphW)
+	// Sparkline line: "<peak> ▁▂▅█…"
+	b.WriteString(detailAxisStyle.Render(peak) + " " + detailSparkStyle.Render(spark) + "\n")
+	// Time axis aligned under the sparkline (indented past the gutter).
 	b.WriteString(strings.Repeat(" ", gutterW+1) + detailAxisStyle.Render(axis) + "\n")
-
 	b.WriteString(detailMutedStyle.Render(fmt.Sprintf("cur %s · avg %s · max %s",
 		fmtVal(s.Latest), fmtVal(s.Avg), fmtVal(s.Max))))
 	return b.String()
-}
-
-// padLeft right-aligns s in a field of width w (space-padded).
-func padLeft(s string, w int) string {
-	n := w - len([]rune(s))
-	if n <= 0 {
-		return s
-	}
-	return strings.Repeat(" ", n) + s
 }
 
 // timeAxis renders a left-aligned "-Xm"/"-Xh" start label and a right-aligned
