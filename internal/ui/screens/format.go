@@ -70,42 +70,31 @@ func maxInt(a, b int) int {
 	return b
 }
 
-// brailleDotBits maps a (col,row) position inside a 2x4 braille cell to the bit to
-// set in the base rune U+2800. Columns are 0..1 (left/right), rows 0..3 (top to
-// bottom). This matches the Unicode braille dot numbering.
-var brailleDotBits = [2][4]rune{
-	{0x01, 0x02, 0x04, 0x40}, // left column:  dots 1,2,3,7
-	{0x08, 0x10, 0x20, 0x80}, // right column: dots 4,5,6,8
-}
-
-// BrailleGraph renders values as a multi-line braille plot of the given character
-// width and height. Each cell packs a 2x4 dot grid, so the effective resolution is
-// (width*2) horizontal samples by (height*4) vertical levels — far finer than a
-// one-line sparkline. Values are scaled against a zero-based axis using scaleMax
-// (pass the series max, or 100 for percentages) so magnitudes stay comparable.
-// It returns exactly height lines, top (highest value) to bottom.
-func BrailleGraph(values []float64, width, height int, scaleMax float64) []string {
-	if width <= 0 {
-		width = 1
+// SparklineScaled renders a one-line sparkline of exactly width characters over a
+// zero-based scale [0, scaleMax], resampling the input to fit. Unlike
+// SparklineFixed (which auto-scales between the series min and max), this keeps the
+// baseline at zero so bar heights reflect absolute magnitude. When scaleMax <= 0 it
+// falls back to the data max.
+func SparklineScaled(values []float64, width int, scaleMax float64) string {
+	if len(values) == 0 || width <= 0 {
+		return strings.Repeat(" ", maxInt(width, 0))
 	}
-	if height <= 0 {
-		height = 1
-	}
-	lines := make([]string, height)
-	if len(values) == 0 {
-		blank := strings.Repeat(" ", width)
-		for i := range lines {
-			lines[i] = blank
+	pts := values
+	if len(values) > width {
+		pts = downsample(values, width)
+	} else if len(values) < width {
+		up := make([]float64, width)
+		for i := 0; i < width; i++ {
+			src := i * len(values) / width
+			if src >= len(values) {
+				src = len(values) - 1
+			}
+			up[i] = values[src]
 		}
-		return lines
+		pts = up
 	}
-
-	cols := width * 2  // horizontal dot columns
-	rows := height * 4 // vertical dot rows
-	pts := resample(values, cols)
 
 	if scaleMax <= 0 {
-		// Fall back to the data max so a flat-zero series still renders cleanly.
 		for _, v := range pts {
 			if v > scaleMax {
 				scaleMax = v
@@ -116,18 +105,8 @@ func BrailleGraph(values []float64, width, height int, scaleMax float64) []strin
 		}
 	}
 
-	// grid[cellRow][cellCol] accumulates dot bits.
-	grid := make([][]rune, height)
-	for r := range grid {
-		grid[r] = make([]rune, width)
-	}
-
-	// lineThickness is the number of dot-rows lit at each value (line mode). A
-	// value of 2 keeps the trace visible without filling the area underneath.
-	const lineThickness = 2
-
-	for x, v := range pts {
-		// Height in dot-rows from the bottom, clamped to [0, rows].
+	out := make([]rune, len(pts))
+	for i, v := range pts {
 		frac := v / scaleMax
 		if frac < 0 {
 			frac = 0
@@ -135,57 +114,16 @@ func BrailleGraph(values []float64, width, height int, scaleMax float64) []strin
 		if frac > 1 {
 			frac = 1
 		}
-		// Dot-row of the value, counted from the bottom (0-based). A zero value
-		// sits on the bottom row; the scale max on the top row.
-		level := int(math.Round(frac * float64(rows-1)))
-		cellCol := x / 2
-		dotCol := x % 2
-		// Line mode: light only the dots at (and just below) the value level, so a
-		// flat high series reads as a thin line near the top rather than a solid
-		// block filling the whole area.
-		for t := 0; t < lineThickness; t++ {
-			dr := level - t
-			if dr < 0 {
-				break
-			}
-			rowFromTop := rows - 1 - dr
-			cellRow := rowFromTop / 4
-			dotRow := rowFromTop % 4
-			grid[cellRow][cellCol] |= brailleDotBits[dotCol][dotRow]
+		level := int(math.Round(frac * float64(len(sparkChars)-1)))
+		if level < 0 {
+			level = 0
 		}
-	}
-
-	for r := 0; r < height; r++ {
-		var sb strings.Builder
-		for c := 0; c < width; c++ {
-			sb.WriteRune(0x2800 + grid[r][c])
+		if level >= len(sparkChars) {
+			level = len(sparkChars) - 1
 		}
-		lines[r] = sb.String()
+		out[i] = sparkChars[level]
 	}
-	return lines
-}
-
-// resample maps values onto exactly n points (averaging when downsampling,
-// nearest-neighbour when upsampling), reusing the existing helpers.
-func resample(values []float64, n int) []float64 {
-	switch {
-	case n <= 0:
-		return nil
-	case len(values) == n:
-		return values
-	case len(values) > n:
-		return downsample(values, n)
-	default:
-		pts := make([]float64, n)
-		for i := 0; i < n; i++ {
-			src := i * len(values) / n
-			if src >= len(values) {
-				src = len(values) - 1
-			}
-			pts[i] = values[src]
-		}
-		return pts
-	}
+	return string(out)
 }
 
 func downsample(values []float64, n int) []float64 {
