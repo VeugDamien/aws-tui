@@ -107,6 +107,24 @@ func TestLogoutCommand(t *testing.T) {
 	}
 }
 
+func TestCanLogin(t *testing.T) {
+	cases := []struct {
+		kind awsconfig.AuthKind
+		want bool
+	}{
+		{awsconfig.AuthSSO, true},
+		{awsconfig.AuthLogin, true},
+		{awsconfig.AuthUnknown, true},
+		{awsconfig.AuthStatic, false},            // static keys: no interactive login
+		{awsconfig.AuthCredentialProcess, false}, // derives its own credentials
+	}
+	for _, c := range cases {
+		if got := CanLogin(awsconfig.Profile{Name: "p", AuthKind: c.kind}); got != c.want {
+			t.Errorf("CanLogin(%v) = %v, want %v", c.kind, got, c.want)
+		}
+	}
+}
+
 func TestNeedsLogin(t *testing.T) {
 	if NeedsLogin(nil) {
 		t.Error("nil error should not need login")
