@@ -65,8 +65,6 @@ var (
 	helpStyle = lipgloss.NewStyle().
 			Foreground(colorMuted)
 
-	menuItemStyle = lipgloss.NewStyle()
-
 	menuKeyStyle = lipgloss.NewStyle().
 			Foreground(colorAccent).
 			Bold(true)
@@ -81,6 +79,18 @@ var (
 	selBarStyle = lipgloss.NewStyle().
 			Foreground(colorAccent).
 			Bold(true)
+
+	// actionBoxStyle frames a category of actions on the home screen.
+	actionBoxStyle = lipgloss.NewStyle().
+			Border(lipgloss.RoundedBorder()).
+			BorderForeground(colorMuted).
+			Padding(0, 1).
+			MarginBottom(1)
+
+	// categoryTitleStyle is the heading of an action category box.
+	categoryTitleStyle = lipgloss.NewStyle().
+				Bold(true).
+				Foreground(colorAccent)
 
 	configBarStyle = lipgloss.NewStyle().
 			Foreground(colorSubtle).

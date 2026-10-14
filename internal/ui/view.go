@@ -157,7 +157,7 @@ func (m AppModel) footer() string {
 	case ScreenProfiles:
 		hints = "↑/↓ navigate · / filter · y copy name · enter select · esc cancel · q quit"
 	case ScreenActions:
-		hints = "↑/↓ navigate · enter confirm   │   p profile · g region · L logout   │   ? help · q quit"
+		hints = "↑/↓ navigate · tab next category · enter open · t tunnels   │   p profile · g region · L logout   │   ? help · q quit"
 	case ScreenRegions:
 		hints = "↑/↓ navigate · / filter · enter select · esc cancel"
 	case ScreenEC2:
@@ -228,15 +228,37 @@ func (m AppModel) viewActions() string {
 
 	b.WriteString(sectionTitleStyle.Render("Actions") + "\n\n")
 
-	for i, it := range m.actionItems() {
-		pointer := "  "
-		label := menuKeyStyle.Render(it.key) + "  " + subtitleStyle.Render(it.label)
-		if i == m.actionCursor {
-			pointer = selBarStyle.Render("▎ ")
-			label = menuKeyStyle.Render(it.key) + "  " + menuSelStyle.Render(it.label)
+	items := m.actionItems()
+
+	// Render one bordered box per category, in order. The ↑/↓ cursor is a single
+	// linear index across all items; tab jumps between categories.
+	const boxWidth = 34
+	for _, cat := range m.actionCategories() {
+		var box strings.Builder
+		box.WriteString(categoryTitleStyle.Render(cat) + "\n")
+		for i, it := range items {
+			if it.category != cat {
+				continue
+			}
+			if i == m.actionCursor {
+				box.WriteString(selBarStyle.Render("▎ ") +
+					menuKeyStyle.Render(it.key) + "  " + menuSelStyle.Render(it.label))
+			} else {
+				box.WriteString("  " +
+					menuKeyStyle.Render(it.key) + "  " + subtitleStyle.Render(it.label))
+			}
+			box.WriteString("\n")
 		}
-		b.WriteString(pointer + menuItemStyle.Render(label) + "\n")
+		b.WriteString(actionBoxStyle.Width(boxWidth).Render(strings.TrimRight(box.String(), "\n")) + "\n")
 	}
+
+	// Tunnels: a transversal shortcut shown as a footer line, with the active count.
+	tcount := m.tunnels.activeCount()
+	tunLabel := "Active tunnels"
+	if tcount > 0 {
+		tunLabel += fmt.Sprintf(" (%d)", tcount)
+	}
+	b.WriteString("\n" + menuKeyStyle.Render("t") + "  " + subtitleStyle.Render(tunLabel) + "\n")
 
 	if m.identity != nil {
 		b.WriteString("\n" + labelStyle.Render("Identity") + subtitleStyle.Render(m.identity.Arn))

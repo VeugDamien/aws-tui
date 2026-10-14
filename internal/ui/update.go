@@ -567,20 +567,59 @@ func (m AppModel) returnOrActions() Screen {
 // place lets updateActions (navigation + shortcuts) and viewActions (rendering)
 // stay in sync.
 type actionItem struct {
-	key   string
-	label string
+	key      string
+	label    string
+	category string
 	// run performs the action and returns the next model/command.
 	run func(m AppModel) (tea.Model, tea.Cmd)
 }
 
-// actionItems returns the ordered entries of the actions menu.
+// actionItems returns the ordered service entries of the actions hub, grouped by
+// category (the order here defines both the linear ↑/↓ order and the on-screen
+// grouping). Tunnels is intentionally excluded: it's a transversal view shown as a
+// footer shortcut, not an AWS service to browse.
 func (m AppModel) actionItems() []actionItem {
 	return []actionItem{
-		{key: "e", label: "List EC2 instances", run: (AppModel).enterEC2},
-		{key: "a", label: "Auto Scaling Groups", run: (AppModel).enterASG},
-		{key: "b", label: "Load Balancers (ALB/NLB)", run: (AppModel).enterELB},
-		{key: "t", label: "Active tunnels (port-forward)", run: (AppModel).enterTunnels},
+		{key: "e", label: "EC2 instances", category: "Compute", run: (AppModel).enterEC2},
+		{key: "a", label: "Auto Scaling Groups", category: "Compute", run: (AppModel).enterASG},
+		{key: "b", label: "Load Balancers (ALB/NLB)", category: "Network", run: (AppModel).enterELB},
 	}
+}
+
+// actionCategories returns the ordered, de-duplicated list of categories as they
+// appear in actionItems.
+func (m AppModel) actionCategories() []string {
+	var cats []string
+	seen := map[string]bool{}
+	for _, it := range m.actionItems() {
+		if !seen[it.category] {
+			seen[it.category] = true
+			cats = append(cats, it.category)
+		}
+	}
+	return cats
+}
+
+// nextCategoryCursor returns the index of the first item of the category following
+// the one currently under the cursor (wrapping to the first category).
+func (m AppModel) nextCategoryCursor() int {
+	items := m.actionItems()
+	if len(items) == 0 {
+		return 0
+	}
+	cur := m.actionCursor
+	if cur < 0 || cur >= len(items) {
+		cur = 0
+	}
+	curCat := items[cur].category
+	// Find the start of the next distinct category after the current one.
+	for i := cur + 1; i < len(items); i++ {
+		if items[i].category != curCat {
+			return i
+		}
+	}
+	// Wrap: jump to the very first item (first category).
+	return 0
 }
 
 // updateActions handles the actions hub: cursor navigation (↑/↓ + enter) plus the
@@ -599,6 +638,9 @@ func (m AppModel) updateActions(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		if m.actionCursor < len(items)-1 {
 			m.actionCursor++
 		}
+		return m, nil
+	case key.Matches(msg, m.keys.ToggleHost): // tab: jump to the next category
+		m.actionCursor = m.nextCategoryCursor()
 		return m, nil
 	case key.Matches(msg, m.keys.Enter):
 		if m.actionCursor >= 0 && m.actionCursor < len(items) {

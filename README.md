@@ -170,7 +170,7 @@ process tree (CLI + plugin) via `taskkill /T /F`.
 | Config (from any action screen) | `p` change profile · `g` change region · `L` logout |
 | Profiles | `↑/↓` navigate · `/` filter · `y` copy name · `enter` select · `esc` cancel |
 | Login confirmation | `enter` log in · `esc` cancel |
-| Actions | `↑/↓` navigate · `enter` confirm · (`e` EC2 · `a` ASG · `b` Load Balancers · `t` tunnels) |
+| Actions | `↑/↓` navigate · `tab` next category · `enter` open · (`e` EC2 · `a` ASG · `b` Load Balancers · `t` tunnels) |
 | Regions | `↑/↓` · `/` filter · `enter` select · `esc` cancel |
 | EC2 | `↑/↓` · `←/→` scroll horizontally · `enter` details · `/` filter · `y` copy ID · `r` refresh · `s` SSM shell · `f` port-forward · `t` tunnels · `esc` back |
 | EC2 detail | `↑/↓` scroll · `y` copy ID · `Y` copy menu (IP, ARN, VPC…) · `m` metrics window (1h/3h/12h/24h) · `r` refresh · `esc` back |
@@ -188,8 +188,9 @@ account — editable via `p`/`g`/`L`) from **functional actions** (EC2, tunnels)
 
 1. Select a profile. If the token is expired, the browser opens for login (SSO or
    `aws login`), then the identity is verified via STS.
-2. You land on the **Actions** screen. The config bar at the top always shows the
-   active profile / region / account.
+2. You land on the **Actions** screen, where services are grouped into categories
+   (Compute, Network…) with active tunnels shown as a footer shortcut. The config
+   bar at the top always shows the active profile / region / account.
 3. Switch profile (`p`) or region (`g`) at any time, from any action screen.
 4. List EC2 instances (`e`), Auto Scaling Groups (`a`) or Load Balancers (`b`);
    filter (`/`).
