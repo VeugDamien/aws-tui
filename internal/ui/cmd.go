@@ -207,11 +207,12 @@ func accountAliasCmd(cfg aws.Config, account string) tea.Cmd {
 	}
 }
 
-// saveProfileCmd persists the last used profile. Persistence failures are silent
-// (non-fatal): they must never disrupt the session.
-func saveProfileCmd(profile string) tea.Cmd {
+// saveSessionCmd persists the last used profile and region so the next launch
+// restores the full context. Persistence failures are silent (non-fatal): they
+// must never disrupt the session.
+func saveSessionCmd(profile, region string) tea.Cmd {
 	return func() tea.Msg {
-		_ = state.Save(state.State{LastProfile: profile})
+		_ = state.Save(state.State{LastProfile: profile, LastRegion: region})
 		return nil
 	}
 }

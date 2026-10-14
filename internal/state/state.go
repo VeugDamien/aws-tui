@@ -15,6 +15,7 @@ import (
 // fields in the file are ignored on load and preserved fields default to zero.
 type State struct {
 	LastProfile string `json:"last_profile"`
+	LastRegion  string `json:"last_region,omitempty"`
 }
 
 // dirName is the application's config subdirectory.
