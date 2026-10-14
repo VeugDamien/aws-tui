@@ -63,17 +63,14 @@ func whoamiCmd(profile awsconfig.Profile, region string) tea.Cmd {
 		ctx := context.Background()
 		cfg, err := awsclient.LoadConfig(ctx, profile.Name, region)
 		if err != nil {
-			// Only offer an interactive login when the profile actually supports
-			// one (SSO/login). Static-key / credential_process profiles have no
-			// login flow, so surface the real error instead.
-			if auth.NeedsLogin(err) && auth.CanLogin(profile) {
+			if auth.NeedsLogin(err) {
 				return authRequiredMsg{profile}
 			}
 			return errMsg{err}
 		}
 		identity, err := auth.Whoami(ctx, cfg)
 		if err != nil {
-			if auth.NeedsLogin(err) && auth.CanLogin(profile) {
+			if auth.NeedsLogin(err) {
 				return authRequiredMsg{profile}
 			}
 			return errMsg{err}
@@ -121,8 +118,8 @@ func listInstancesCmd(m *AppModel) tea.Cmd {
 	return func() tea.Msg {
 		instances, err := awsclient.ListInstances(context.Background(), cfg)
 		if err != nil {
-			if p := m.currentProfile(); auth.NeedsLogin(err) && auth.CanLogin(p) {
-				return authRequiredMsg{p}
+			if auth.NeedsLogin(err) {
+				return authRequiredMsg{m.currentProfile()}
 			}
 			return errMsg{err}
 		}
@@ -137,7 +134,7 @@ func listASGCmd(m *AppModel) tea.Cmd {
 	return func() tea.Msg {
 		groups, err := awsclient.ListAutoScalingGroups(context.Background(), cfg)
 		if err != nil {
-			if auth.NeedsLogin(err) && auth.CanLogin(profile) {
+			if auth.NeedsLogin(err) {
 				return authRequiredMsg{profile}
 			}
 			return errMsg{err}
@@ -153,7 +150,7 @@ func listELBCmd(m *AppModel) tea.Cmd {
 	return func() tea.Msg {
 		lbs, err := awsclient.ListLoadBalancers(context.Background(), cfg)
 		if err != nil {
-			if auth.NeedsLogin(err) && auth.CanLogin(profile) {
+			if auth.NeedsLogin(err) {
 				return authRequiredMsg{profile}
 			}
 			return errMsg{err}
