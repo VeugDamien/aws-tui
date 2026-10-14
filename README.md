@@ -178,7 +178,7 @@ process tree (CLI + plugin) via `taskkill /T /F`.
 | ASG detail | `↑/↓` scroll · `y` copy name · `Y` copy menu (ARN, subnets, zones…) · `r` refresh · `esc` back |
 | Load Balancers | `↑/↓` · `←/→` scroll · `enter` details · `/` filter · `y` copy DNS · `r` refresh · `esc` back |
 | LB detail | `↑/↓` scroll · `y` copy DNS · `Y` copy menu (name, ARN, VPC…) · `r` refresh · `esc` back |
-| Port-forward (form) | `↑/↓` field · `tab` toggle remote host · `enter` start · `esc` cancel |
+| Port-forward (form) | `tab`/`↑↓` next/prev field · `ctrl+t` toggle remote host · `enter` start · `esc` cancel |
 | Tunnels | `↑/↓` navigate · `x` stop · `X` stop all · `r` restart · `c` clear stopped · `esc` back |
 
 The interface separates **configuration** (persistent top bar: profile, region,

@@ -1164,14 +1164,14 @@ func (m AppModel) updatePFForm(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 	case "esc":
 		m = m.returnFromPF()
 		return m, nil
-	case "tab":
-		m.pfForm.ToggleRemoteHost()
-		return m, nil
-	case "down":
+	case "tab", "down":
 		m.pfForm.Next()
 		return m, nil
-	case "up":
+	case "shift+tab", "up":
 		m.pfForm.Prev()
+		return m, nil
+	case "ctrl+t":
+		m.pfForm.ToggleRemoteHost()
 		return m, nil
 	case "enter":
 		host, remotePort, localPort, err := m.pfForm.Values()

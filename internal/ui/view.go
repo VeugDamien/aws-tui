@@ -187,7 +187,7 @@ func (m AppModel) footer() string {
 	case ScreenLoginConfirm:
 		hints = "enter log in · esc cancel"
 	case ScreenPortForwardForm:
-		hints = "↑/↓ field · tab remote host · enter start · esc cancel"
+		hints = "tab/↑↓ field · ctrl+t remote host · enter start · esc cancel"
 	case ScreenTunnels:
 		hints = "↑/↓ navigate · x stop · X stop all · r restart · c clear stopped · esc back"
 	}
@@ -348,7 +348,8 @@ func (m AppModel) viewPFForm() string {
 		tgt = fmt.Sprintf("%s (%s)", m.pfForm.TargetName, m.pfForm.Target)
 	}
 
-	b.WriteString(sectionTitleStyle.Render("Port-forward "+mode) + "\n")
+	b.WriteString(sectionTitleStyle.Render("Port-forward "+mode) +
+		subtitleStyle.Render("  (ctrl+t to toggle)") + "\n")
 	b.WriteString(labelStyle.Render("Target") + tgt + "\n\n")
 	b.WriteString(m.pfForm.View())
 	return panelStyle.Render(b.String())
