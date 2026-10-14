@@ -48,9 +48,14 @@ func (m AppModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		// On startup, restore the last used profile if it still exists.
 		if !m.startupDone {
 			m.startupDone = true
-			if p, ok := m.lastProfile(); ok {
+			if p, region, ok := m.lastProfile(); ok {
 				// Show the loading over the Actions context, not the profile list.
 				m.screen = ScreenActions
+				// Restore the persisted region so the profile's own region key
+				// (resolved in connectToProfile) still takes precedence when set.
+				if region != "" {
+					m.activeRegion = region
+				}
 				// Automatic restore: a required login will be confirmed first.
 				return m.connectToProfile(p, false)
 			}
@@ -69,8 +74,8 @@ func (m AppModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		clearCmd := m.setStatus("Connected.")
 		// Resolve the account alias in the background (non-fatal if denied).
 		aliasCmd := accountAliasCmd(msg.cfg, msg.identity.Account)
-		// Persist the now-connected profile as the last used one.
-		saveCmd := saveProfileCmd(m.activeProfile)
+		// Persist the now-connected profile and region as the last used ones.
+		saveCmd := saveSessionCmd(m.activeProfile, m.activeRegion)
 		// Land on the action we came from (EC2/Tunnels) or the actions hub.
 		dest := m.returnOrActions()
 		if dest == ScreenEC2 {
@@ -521,9 +526,15 @@ func (m AppModel) updateProfiles(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 func (m AppModel) connectToProfile(p awsconfig.Profile, manual bool) (tea.Model, tea.Cmd) {
 	m.activeProfile = p.Name
 	m.autoLogin = manual
-	if p.Region != "" {
+	// Region precedence: the profile's explicit region wins; otherwise keep an
+	// already-set region (e.g. the persisted last region on startup, or the
+	// region the user picked); otherwise fall back to the default.
+	switch {
+	case p.Region != "":
 		m.activeRegion = p.Region
-	} else {
+	case m.activeRegion != "":
+		// keep current
+	default:
 		m.activeRegion = defaultRegion
 	}
 	m.identity = nil
@@ -538,19 +549,19 @@ func (m AppModel) connectToProfile(p awsconfig.Profile, manual bool) (tea.Model,
 	return m, tea.Batch(whoamiCmd(p, m.activeRegion), m.spinner.Tick)
 }
 
-// lastProfile returns the persisted last-used profile if it still exists in the
-// current profile list.
-func (m AppModel) lastProfile() (awsconfig.Profile, bool) {
+// lastProfile returns the persisted last-used profile (if it still exists in the
+// current profile list) along with the persisted last region, which may be empty.
+func (m AppModel) lastProfile() (p awsconfig.Profile, region string, ok bool) {
 	st, err := state.Load()
 	if err != nil || st.LastProfile == "" {
-		return awsconfig.Profile{}, false
+		return awsconfig.Profile{}, "", false
 	}
-	for _, p := range m.profiles {
-		if p.Name == st.LastProfile {
-			return p, true
+	for _, pr := range m.profiles {
+		if pr.Name == st.LastProfile {
+			return pr, st.LastRegion, true
 		}
 	}
-	return awsconfig.Profile{}, false
+	return awsconfig.Profile{}, "", false
 }
 
 // returnOrActions returns the saved return screen, defaulting to the actions hub.

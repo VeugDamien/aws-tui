@@ -23,7 +23,7 @@ func isolateConfig(t *testing.T) string {
 func TestSaveLoadRoundTrip(t *testing.T) {
 	isolateConfig(t)
 
-	if err := Save(State{LastProfile: "egf-prd"}); err != nil {
+	if err := Save(State{LastProfile: "egf-prd", LastRegion: "eu-west-1"}); err != nil {
 		t.Fatalf("Save: %v", err)
 	}
 	got, err := Load()
@@ -32,6 +32,9 @@ func TestSaveLoadRoundTrip(t *testing.T) {
 	}
 	if got.LastProfile != "egf-prd" {
 		t.Errorf("LastProfile = %q, want %q", got.LastProfile, "egf-prd")
+	}
+	if got.LastRegion != "eu-west-1" {
+		t.Errorf("LastRegion = %q, want %q", got.LastRegion, "eu-west-1")
 	}
 }
 

@@ -252,13 +252,17 @@ func (m AppModel) viewActions() string {
 		b.WriteString(actionBoxStyle.Width(boxWidth).Render(strings.TrimRight(box.String(), "\n")) + "\n")
 	}
 
-	// Tunnels: a transversal shortcut shown as a footer line, with the active count.
+	// Tunnels: a transversal shortcut shown as a footer line. When tunnels are
+	// active, the line is highlighted (green) with the live count; otherwise it's
+	// a muted entry.
 	tcount := m.tunnels.activeCount()
-	tunLabel := "Active tunnels"
+	var tunLine string
 	if tcount > 0 {
-		tunLabel += fmt.Sprintf(" (%d)", tcount)
+		tunLine = identityStyle.Render(fmt.Sprintf("⇄ Active tunnels (%d)", tcount))
+	} else {
+		tunLine = subtitleStyle.Render("Active tunnels")
 	}
-	b.WriteString("\n" + menuKeyStyle.Render("t") + "  " + subtitleStyle.Render(tunLabel) + "\n")
+	b.WriteString("\n" + menuKeyStyle.Render("t") + "  " + tunLine + "\n")
 
 	if m.identity != nil {
 		b.WriteString("\n" + labelStyle.Render("Identity") + subtitleStyle.Render(m.identity.Arn))

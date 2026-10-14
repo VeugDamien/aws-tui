@@ -19,7 +19,8 @@ interactive SSM sessions are delegated to the AWS CLI v2.
 - SSH session detection (`SSH_TTY`/`SSH_CONNECTION`): adds `--remote` to login
   commands.
 - Logout (`aws sso logout` / `aws logout`).
-- Region selector (default `eu-west-3`).
+- Region selector (default `eu-west-3`). The last used profile and region are
+  remembered and restored on the next launch.
 - Filterable EC2 instance list (Name, ID, state, type, private IP, AZ), with
   horizontal scrolling for narrow terminals.
 - Per-instance detail page (`enter`): general information, security groups
