@@ -8,6 +8,7 @@ import (
 	"github.com/charmbracelet/bubbles/list"
 	tea "github.com/charmbracelet/bubbletea"
 
+	"github.com/VeugDamien/aws-tui/internal/auth"
 	"github.com/VeugDamien/aws-tui/internal/awsclient"
 	"github.com/VeugDamien/aws-tui/internal/awsconfig"
 	"github.com/VeugDamien/aws-tui/internal/state"
@@ -91,18 +92,29 @@ func (m AppModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		return m, nil
 
 	case authRequiredMsg:
+		// Resolve which profile actually has an interactive login: the selected
+		// one, or — for a credential_process/derived profile — its loggable
+		// parent. If nothing in the chain can be logged in (e.g. standalone static
+		// keys), surface the underlying error instead of attempting a login.
+		target, ok := auth.LoginTarget(msg.profile, m.profileByName)
+		if !ok {
+			m.loading = false
+			m.loadingMsg = ""
+			m.err = fmt.Errorf("profile %q cannot be authenticated interactively (no SSO/login in its chain)", msg.profile.Name)
+			return m, nil
+		}
 		// A manual profile selection logs in immediately; any other context
 		// (startup restore, token expiry during an action) first shows a
 		// confirmation screen naming the profile so the user knows what they are
 		// authenticating.
 		if m.autoLogin {
 			m.loading = true
-			m.loadingMsg = fmt.Sprintf("Authenticating profile %q…", msg.profile.Name)
-			return m, loginCmd(msg.profile)
+			m.loadingMsg = fmt.Sprintf("Authenticating profile %q…", target.Name)
+			return m, loginCmd(target)
 		}
 		m.loading = false
 		m.loadingMsg = ""
-		m.loginProfile = msg.profile
+		m.loginProfile = target
 		m.loginConfirmReturn = m.screen
 		m.screen = ScreenLoginConfirm
 		return m, nil

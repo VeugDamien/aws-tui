@@ -143,6 +143,16 @@ func (m AppModel) currentProfile() awsconfig.Profile {
 	return awsconfig.Profile{Name: m.activeProfile, AuthKind: awsconfig.AuthUnknown}
 }
 
+// profileByName looks up a loaded profile by name.
+func (m AppModel) profileByName(name string) (awsconfig.Profile, bool) {
+	for _, p := range m.profiles {
+		if p.Name == name {
+			return p, true
+		}
+	}
+	return awsconfig.Profile{}, false
+}
+
 // contentHeight returns the height available for the main content area (the body),
 // after reserving space for the surrounding chrome.
 func (m AppModel) contentHeight() int {
