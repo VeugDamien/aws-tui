@@ -68,6 +68,15 @@ func LoginCommand(p awsconfig.Profile) (name string, args []string, ok bool) {
 	return "aws", args, true
 }
 
+// CanLogin reports whether an interactive login flow is applicable for the given
+// profile. Static-key and credential_process profiles carry (or derive) their own
+// credentials and have no interactive login, so a failed call on them is a real
+// error — not a reason to run "aws login".
+func CanLogin(p awsconfig.Profile) bool {
+	_, _, ok := LoginCommand(p)
+	return ok
+}
+
 // LogoutCommand returns the argv to clear cached credentials for the profile.
 // ok is false when logout is not applicable.
 func LogoutCommand(p awsconfig.Profile) (name string, args []string, ok bool) {
