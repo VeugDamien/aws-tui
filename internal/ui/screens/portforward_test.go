@@ -95,3 +95,46 @@ func TestValuesInstanceModeIgnoresHost(t *testing.T) {
 		t.Fatalf("expected empty host in instance mode, got %q", host)
 	}
 }
+
+func TestPortForwardFormNavigation(t *testing.T) {
+	f := NewPortForwardForm("i-1", "web")
+
+	// Instance-port mode: only two fields, Next wraps between them.
+	if f.focus != fieldRemotePort {
+		t.Fatalf("initial focus = %d, want remote port", f.focus)
+	}
+	f.Next()
+	if f.focus != fieldLocalPort {
+		t.Errorf("after Next, focus = %d, want local port", f.focus)
+	}
+	f.Next() // wraps (host is not in use)
+	if f.focus != fieldRemotePort {
+		t.Errorf("after wrap, focus = %d, want remote port", f.focus)
+	}
+	f.Prev()
+	if f.focus != fieldLocalPort {
+		t.Errorf("after Prev, focus = %d, want local port", f.focus)
+	}
+}
+
+func TestPortForwardFormToggleIncludesHost(t *testing.T) {
+	f := NewPortForwardForm("i-1", "web")
+	f.ToggleRemoteHost()
+	if !f.RemoteHost {
+		t.Fatal("toggle should enable remote host mode")
+	}
+	// Now Next must be able to reach the host field.
+	f.Next() // remote -> local
+	f.Next() // local -> host
+	if f.focus != fieldHost {
+		t.Errorf("focus = %d, want host field in remote-host mode", f.focus)
+	}
+	// Toggling back off while on host must move focus away from the hidden field.
+	f.ToggleRemoteHost()
+	if f.RemoteHost {
+		t.Fatal("toggle should disable remote host mode")
+	}
+	if f.focus == fieldHost {
+		t.Error("focus should leave the host field when it is hidden")
+	}
+}

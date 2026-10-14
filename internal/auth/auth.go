@@ -68,6 +68,41 @@ func LoginCommand(p awsconfig.Profile) (name string, args []string, ok bool) {
 	return "aws", args, true
 }
 
+// CanLogin reports whether an interactive login flow is directly applicable for
+// the given profile (SSO / login / unknown). Static-key and credential_process
+// profiles have no login flow of their own.
+func CanLogin(p awsconfig.Profile) bool {
+	_, _, ok := LoginCommand(p)
+	return ok
+}
+
+// LoginTarget resolves which profile should actually be logged in to authenticate
+// p. If p itself has an interactive login, it is returned. Otherwise, when p
+// derives from a parent profile (source_profile, or a parent referenced by a
+// credential_process command), the parent chain is followed until a loggable
+// profile is found. lookup resolves a profile by name. ok is false when nothing in
+// the chain can be logged in (e.g. standalone static keys).
+func LoginTarget(p awsconfig.Profile, lookup func(string) (awsconfig.Profile, bool)) (awsconfig.Profile, bool) {
+	// Guard against cycles in misconfigured source_profile chains.
+	seen := map[string]bool{}
+	cur := p
+	for {
+		if CanLogin(cur) {
+			return cur, true
+		}
+		parent := cur.ParentProfile()
+		if parent == "" || seen[cur.Name] {
+			return awsconfig.Profile{}, false
+		}
+		seen[cur.Name] = true
+		next, ok := lookup(parent)
+		if !ok {
+			return awsconfig.Profile{}, false
+		}
+		cur = next
+	}
+}
+
 // LogoutCommand returns the argv to clear cached credentials for the profile.
 // ok is false when logout is not applicable.
 func LogoutCommand(p awsconfig.Profile) (name string, args []string, ok bool) {

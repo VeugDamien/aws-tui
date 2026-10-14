@@ -70,6 +70,62 @@ func maxInt(a, b int) int {
 	return b
 }
 
+// SparklineScaled renders a one-line sparkline of exactly width characters over a
+// zero-based scale [0, scaleMax], resampling the input to fit. Unlike
+// SparklineFixed (which auto-scales between the series min and max), this keeps the
+// baseline at zero so bar heights reflect absolute magnitude. When scaleMax <= 0 it
+// falls back to the data max.
+func SparklineScaled(values []float64, width int, scaleMax float64) string {
+	if len(values) == 0 || width <= 0 {
+		return strings.Repeat(" ", maxInt(width, 0))
+	}
+	pts := values
+	if len(values) > width {
+		pts = downsample(values, width)
+	} else if len(values) < width {
+		up := make([]float64, width)
+		for i := 0; i < width; i++ {
+			src := i * len(values) / width
+			if src >= len(values) {
+				src = len(values) - 1
+			}
+			up[i] = values[src]
+		}
+		pts = up
+	}
+
+	if scaleMax <= 0 {
+		for _, v := range pts {
+			if v > scaleMax {
+				scaleMax = v
+			}
+		}
+		if scaleMax <= 0 {
+			scaleMax = 1
+		}
+	}
+
+	out := make([]rune, len(pts))
+	for i, v := range pts {
+		frac := v / scaleMax
+		if frac < 0 {
+			frac = 0
+		}
+		if frac > 1 {
+			frac = 1
+		}
+		level := int(math.Round(frac * float64(len(sparkChars)-1)))
+		if level < 0 {
+			level = 0
+		}
+		if level >= len(sparkChars) {
+			level = len(sparkChars) - 1
+		}
+		out[i] = sparkChars[level]
+	}
+	return string(out)
+}
+
 func downsample(values []float64, n int) []float64 {
 	out := make([]float64, n)
 	bucket := float64(len(values)) / float64(n)

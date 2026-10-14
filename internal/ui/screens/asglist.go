@@ -33,12 +33,12 @@ var asgHeaders = []struct {
 var (
 	asgHeaderStyle = lipgloss.NewStyle().
 			Bold(true).
-			Foreground(lipgloss.Color("63"))
+			Foreground(paletteAccent)
 
 	asgSelectedStyle = lipgloss.NewStyle().
 				Bold(true).
-				Foreground(lipgloss.Color("230")).
-				Background(lipgloss.Color("63"))
+				Foreground(lipgloss.AdaptiveColor{Light: "231", Dark: "236"}).
+				Background(paletteAccent)
 )
 
 // ASGTable is a filterable, scrollable table over Auto Scaling groups.

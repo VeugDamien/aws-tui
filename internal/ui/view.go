@@ -34,6 +34,8 @@ func (m AppModel) View() string {
 		body = m.viewELB()
 	case ScreenELBDetail:
 		body = m.elbDetail.View(m.spinner.View())
+	case ScreenLoginConfirm:
+		body = m.viewLoginConfirm()
 	case ScreenPortForwardForm:
 		body = m.viewPFForm()
 	case ScreenTunnels:
@@ -99,16 +101,20 @@ func (m AppModel) View() string {
 func (m AppModel) statusBar() string {
 	width := m.contentWidth()
 	rule := statusRuleStyle.Render(strings.Repeat("─", width))
-	msg := statusLineStyle.Render("• " + m.statusMsg)
+	msg := selBarStyle.Render("▎") + " " + statusLineStyle.Render(m.statusMsg)
 	return rule + "\n" + msg
 }
 
-// header renders the title line plus the active-tunnel counter.
+// header renders the title line, the active-tunnel counter and, when a newer
+// release is available, a discreet update hint.
 func (m AppModel) header() string {
-	title := titleStyle.Render(" aws-tui ")
+	title := titleStyle.Render("aws-tui")
 	right := ""
 	if n := m.tunnels.activeCount(); n > 0 {
-		right = "  " + warnStyle.Render(fmt.Sprintf("⇄ %d tunnel(s)", n))
+		right += "   " + lipgloss.NewStyle().Foreground(colorAccent2).Render(fmt.Sprintf("⇄ %d tunnel(s)", n))
+	}
+	if m.updateVersion != "" {
+		right += "   " + updateHintStyle.Render(fmt.Sprintf("↑ %s available — run: aws-tui upgrade", m.updateVersion))
 	}
 	return lipgloss.JoinHorizontal(lipgloss.Center, title, right)
 }
@@ -151,7 +157,7 @@ func (m AppModel) footer() string {
 	case ScreenProfiles:
 		hints = "↑/↓ navigate · / filter · y copy name · enter select · esc cancel · q quit"
 	case ScreenActions:
-		hints = "↑/↓ navigate · enter confirm   │   p profile · g region · L logout   │   ? help · q quit"
+		hints = "↑/↓ navigate · tab next category · enter open · t tunnels   │   p profile · g region · L logout   │   ? help · q quit"
 	case ScreenRegions:
 		hints = "↑/↓ navigate · / filter · enter select · esc cancel"
 	case ScreenEC2:
@@ -178,8 +184,10 @@ func (m AppModel) footer() string {
 		} else {
 			hints = "↑/↓ scroll · y copy ID · Y copy… · s session · f port-forward · m metrics · r refresh · esc back"
 		}
+	case ScreenLoginConfirm:
+		hints = "enter log in · esc cancel"
 	case ScreenPortForwardForm:
-		hints = "↑/↓ field · tab remote host · enter start · esc cancel"
+		hints = "tab/↑↓ field · ctrl+t remote host · enter start · esc cancel"
 	case ScreenTunnels:
 		hints = "↑/↓ navigate · x stop · X stop all · r restart · c clear stopped · esc back"
 	}
@@ -193,22 +201,68 @@ func (m AppModel) viewProfiles() string {
 	return m.profileList.View()
 }
 
+// viewLoginConfirm renders the confirmation shown before an interactive login,
+// naming the profile so the user knows exactly which account they are about to
+// authenticate (the account number is only known after login).
+func (m AppModel) viewLoginConfirm() string {
+	p := m.loginProfile
+	region := m.activeRegion
+
+	var b strings.Builder
+	b.WriteString(sectionTitleStyle.Render("Login required") + "\n\n")
+	b.WriteString("A browser login is needed to connect this profile:\n\n")
+	b.WriteString(labelStyle.Render("Profile") + configValStyle.Render(p.Name) + "\n")
+	b.WriteString(labelStyle.Render("Region") + configValStyle.Render(region) + "\n")
+	b.WriteString(labelStyle.Render("Auth") + configValStyle.Render(p.AuthKind.String()) + "\n")
+	if p.SSOSession != "" {
+		b.WriteString(labelStyle.Render("SSO session") + configValStyle.Render(p.SSOSession) + "\n")
+	}
+	b.WriteString("\n" + helpStyle.Render("Press enter to open the browser login, esc to cancel."))
+	return panelStyle.Render(b.String())
+}
+
 // viewActions renders the actions hub: only functional actions. Configuration
 // (profile/region/account) lives in the persistent config bar above.
 func (m AppModel) viewActions() string {
 	var b strings.Builder
 
-	b.WriteString(subtitleStyle.Render("Actions") + "\n\n")
+	b.WriteString(sectionTitleStyle.Render("Actions") + "\n\n")
 
-	for i, it := range m.actionItems() {
-		pointer := "  "
-		label := menuKeyStyle.Render(it.key) + "  " + it.label
-		if i == m.actionCursor {
-			pointer = menuKeyStyle.Render("▶ ")
-			label = menuSelStyle.Render(it.key + "  " + it.label)
+	items := m.actionItems()
+
+	// Render one bordered box per category, in order. The ↑/↓ cursor is a single
+	// linear index across all items; tab jumps between categories.
+	const boxWidth = 34
+	for _, cat := range m.actionCategories() {
+		var box strings.Builder
+		box.WriteString(categoryTitleStyle.Render(cat) + "\n")
+		for i, it := range items {
+			if it.category != cat {
+				continue
+			}
+			if i == m.actionCursor {
+				box.WriteString(selBarStyle.Render("▎ ") +
+					menuKeyStyle.Render(it.key) + "  " + menuSelStyle.Render(it.label))
+			} else {
+				box.WriteString("  " +
+					menuKeyStyle.Render(it.key) + "  " + subtitleStyle.Render(it.label))
+			}
+			box.WriteString("\n")
 		}
-		b.WriteString(pointer + menuItemStyle.Render(label) + "\n")
+		b.WriteString(actionBoxStyle.Width(boxWidth).Render(strings.TrimRight(box.String(), "\n")) + "\n")
 	}
+
+	// Tunnels: a transversal shortcut shown as a footer line. When tunnels are
+	// active, the line is highlighted (green) with the live count; otherwise it's
+	// a muted entry.
+	tcount := m.tunnels.activeCount()
+	var tunLine string
+	if tcount > 0 {
+		tunLine = identityStyle.Render(fmt.Sprintf("⇄ Active tunnels (%d)", tcount))
+	} else {
+		tunLine = subtitleStyle.Render("Active tunnels")
+	}
+	b.WriteString("\n" + menuKeyStyle.Render("t") + "  " + tunLine + "\n")
 
 	if m.identity != nil {
 		b.WriteString("\n" + labelStyle.Render("Identity") + subtitleStyle.Render(m.identity.Arn))
@@ -224,7 +278,7 @@ func (m AppModel) viewEC2() string {
 	var b strings.Builder
 
 	header := fmt.Sprintf("EC2 instances — %d/%d", m.ec2.Count(), m.ec2.TotalCount())
-	b.WriteString(subtitleStyle.Render(header) + "\n")
+	b.WriteString(sectionTitleStyle.Render(header) + "\n")
 
 	if m.ec2.Filtering || m.ec2.Filter != "" {
 		cursor := ""
@@ -246,7 +300,7 @@ func (m AppModel) viewASG() string {
 	var b strings.Builder
 
 	header := fmt.Sprintf("Auto Scaling Groups — %d/%d", m.asg.Count(), m.asg.TotalCount())
-	b.WriteString(subtitleStyle.Render(header) + "\n")
+	b.WriteString(sectionTitleStyle.Render(header) + "\n")
 
 	if m.asg.Filtering || m.asg.Filter != "" {
 		cursor := ""
@@ -268,7 +322,7 @@ func (m AppModel) viewELB() string {
 	var b strings.Builder
 
 	header := fmt.Sprintf("Load Balancers — %d/%d", m.elb.Count(), m.elb.TotalCount())
-	b.WriteString(subtitleStyle.Render(header) + "\n")
+	b.WriteString(sectionTitleStyle.Render(header) + "\n")
 
 	if m.elb.Filtering || m.elb.Filter != "" {
 		cursor := ""
@@ -298,7 +352,8 @@ func (m AppModel) viewPFForm() string {
 		tgt = fmt.Sprintf("%s (%s)", m.pfForm.TargetName, m.pfForm.Target)
 	}
 
-	b.WriteString(subtitleStyle.Render("Port-forward "+mode) + "\n")
+	b.WriteString(sectionTitleStyle.Render("Port-forward "+mode) +
+		subtitleStyle.Render("  (ctrl+t to toggle)") + "\n")
 	b.WriteString(labelStyle.Render("Target") + tgt + "\n\n")
 	b.WriteString(m.pfForm.View())
 	return panelStyle.Render(b.String())
@@ -311,12 +366,12 @@ func (m AppModel) viewTunnels() string {
 	}
 
 	var b strings.Builder
-	b.WriteString(subtitleStyle.Render(fmt.Sprintf("Tunnels (%d)", len(tunnels))) + "\n\n")
+	b.WriteString(sectionTitleStyle.Render(fmt.Sprintf("Tunnels (%d)", len(tunnels))) + "\n\n")
 
 	for i, t := range tunnels {
 		cursor := "  "
 		if i == m.tunnelCursor {
-			cursor = menuKeyStyle.Render("▶ ")
+			cursor = selBarStyle.Render("▎ ")
 		}
 
 		var state string

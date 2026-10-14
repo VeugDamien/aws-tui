@@ -107,6 +107,78 @@ func TestLogoutCommand(t *testing.T) {
 	}
 }
 
+func TestCanLogin(t *testing.T) {
+	cases := []struct {
+		kind awsconfig.AuthKind
+		want bool
+	}{
+		{awsconfig.AuthSSO, true},
+		{awsconfig.AuthLogin, true},
+		{awsconfig.AuthUnknown, true},
+		{awsconfig.AuthStatic, false},            // static keys: no interactive login
+		{awsconfig.AuthCredentialProcess, false}, // derives its own credentials
+	}
+	for _, c := range cases {
+		if got := CanLogin(awsconfig.Profile{Name: "p", AuthKind: c.kind}); got != c.want {
+			t.Errorf("CanLogin(%v) = %v, want %v", c.kind, got, c.want)
+		}
+	}
+}
+
+func TestLoginTarget(t *testing.T) {
+	// Profile registry for lookups.
+	profiles := map[string]awsconfig.Profile{
+		"sso-root":  {Name: "sso-root", AuthKind: awsconfig.AuthSSO, SSOSession: "s"},
+		"static":    {Name: "static", AuthKind: awsconfig.AuthStatic},
+		"tf-sso":    {Name: "tf-sso", AuthKind: awsconfig.AuthCredentialProcess, SourceProfile: "sso-root"},
+		"tf-static": {Name: "tf-static", AuthKind: awsconfig.AuthCredentialProcess, SourceProfile: "static"},
+		"tf-orphan": {Name: "tf-orphan", AuthKind: awsconfig.AuthCredentialProcess, SourceProfile: "missing"},
+	}
+	lookup := func(name string) (awsconfig.Profile, bool) {
+		p, ok := profiles[name]
+		return p, ok
+	}
+
+	cases := []struct {
+		name       string
+		in         awsconfig.Profile
+		wantOK     bool
+		wantTarget string
+	}{
+		{"direct sso", profiles["sso-root"], true, "sso-root"},
+		{"cred-process derived from sso logs in the parent", profiles["tf-sso"], true, "sso-root"},
+		{"cred-process derived from static has no login", profiles["tf-static"], false, ""},
+		{"standalone static has no login", profiles["static"], false, ""},
+		{"cred-process with missing parent has no login", profiles["tf-orphan"], false, ""},
+	}
+	for _, c := range cases {
+		t.Run(c.name, func(t *testing.T) {
+			got, ok := LoginTarget(c.in, lookup)
+			if ok != c.wantOK {
+				t.Fatalf("ok = %v, want %v", ok, c.wantOK)
+			}
+			if ok && got.Name != c.wantTarget {
+				t.Errorf("target = %q, want %q", got.Name, c.wantTarget)
+			}
+		})
+	}
+}
+
+func TestLoginTargetBreaksCycles(t *testing.T) {
+	// Two credential_process profiles pointing at each other must not loop.
+	profiles := map[string]awsconfig.Profile{
+		"a": {Name: "a", AuthKind: awsconfig.AuthCredentialProcess, SourceProfile: "b"},
+		"b": {Name: "b", AuthKind: awsconfig.AuthCredentialProcess, SourceProfile: "a"},
+	}
+	lookup := func(name string) (awsconfig.Profile, bool) {
+		p, ok := profiles[name]
+		return p, ok
+	}
+	if _, ok := LoginTarget(profiles["a"], lookup); ok {
+		t.Error("a cycle with no loggable profile should return ok=false")
+	}
+}
+
 func TestNeedsLogin(t *testing.T) {
 	if NeedsLogin(nil) {
 		t.Error("nil error should not need login")

@@ -8,6 +8,7 @@ import (
 	"github.com/charmbracelet/bubbles/list"
 	tea "github.com/charmbracelet/bubbletea"
 
+	"github.com/VeugDamien/aws-tui/internal/auth"
 	"github.com/VeugDamien/aws-tui/internal/awsclient"
 	"github.com/VeugDamien/aws-tui/internal/awsconfig"
 	"github.com/VeugDamien/aws-tui/internal/state"
@@ -47,10 +48,16 @@ func (m AppModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		// On startup, restore the last used profile if it still exists.
 		if !m.startupDone {
 			m.startupDone = true
-			if p, ok := m.lastProfile(); ok {
+			if p, region, ok := m.lastProfile(); ok {
 				// Show the loading over the Actions context, not the profile list.
 				m.screen = ScreenActions
-				return m.connectToProfile(p)
+				// Restore the persisted region so the profile's own region key
+				// (resolved in connectToProfile) still takes precedence when set.
+				if region != "" {
+					m.activeRegion = region
+				}
+				// Automatic restore: a required login will be confirmed first.
+				return m.connectToProfile(p, false)
 			}
 			// Nothing memorised (or profile gone): land on Actions, not connected.
 			m.screen = ScreenActions
@@ -67,8 +74,8 @@ func (m AppModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		clearCmd := m.setStatus("Connected.")
 		// Resolve the account alias in the background (non-fatal if denied).
 		aliasCmd := accountAliasCmd(msg.cfg, msg.identity.Account)
-		// Persist the now-connected profile as the last used one.
-		saveCmd := saveProfileCmd(m.activeProfile)
+		// Persist the now-connected profile and region as the last used ones.
+		saveCmd := saveSessionCmd(m.activeProfile, m.activeRegion)
 		// Land on the action we came from (EC2/Tunnels) or the actions hub.
 		dest := m.returnOrActions()
 		if dest == ScreenEC2 {
@@ -90,9 +97,32 @@ func (m AppModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		return m, nil
 
 	case authRequiredMsg:
-		m.loading = true
-		m.loadingMsg = fmt.Sprintf("Authenticating profile %q…", msg.profile.Name)
-		return m, loginCmd(msg.profile)
+		// Resolve which profile actually has an interactive login: the selected
+		// one, or — for a credential_process/derived profile — its loggable
+		// parent. If nothing in the chain can be logged in (e.g. standalone static
+		// keys), surface the underlying error instead of attempting a login.
+		target, ok := auth.LoginTarget(msg.profile, m.profileByName)
+		if !ok {
+			m.loading = false
+			m.loadingMsg = ""
+			m.err = fmt.Errorf("profile %q cannot be authenticated interactively (no SSO/login in its chain)", msg.profile.Name)
+			return m, nil
+		}
+		// A manual profile selection logs in immediately; any other context
+		// (startup restore, token expiry during an action) first shows a
+		// confirmation screen naming the profile so the user knows what they are
+		// authenticating.
+		if m.autoLogin {
+			m.loading = true
+			m.loadingMsg = fmt.Sprintf("Authenticating profile %q…", target.Name)
+			return m, loginCmd(target)
+		}
+		m.loading = false
+		m.loadingMsg = ""
+		m.loginProfile = target
+		m.loginConfirmReturn = m.screen
+		m.screen = ScreenLoginConfirm
+		return m, nil
 
 	case loginDoneMsg:
 		if msg.err != nil {
@@ -237,6 +267,12 @@ func (m AppModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		}
 		return m, nil
 
+	case updateAvailableMsg:
+		// Record the newer version so the header can show a discreet hint. This is
+		// purely informational and never interrupts the user.
+		m.updateVersion = msg.latest
+		return m, nil
+
 	case clipboardMsg:
 		if msg.err != nil {
 			m.err = fmt.Errorf("copy failed: %w", msg.err)
@@ -364,6 +400,8 @@ func (m AppModel) handleKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		return m.updateELB(msg)
 	case ScreenELBDetail:
 		return m.updateELBDetail(msg)
+	case ScreenLoginConfirm:
+		return m.updateLoginConfirm(msg)
 	case ScreenPortForwardForm:
 		return m.updatePFForm(msg)
 	case ScreenTunnels:
@@ -400,6 +438,32 @@ func (m AppModel) isTyping() bool {
 		return true
 	}
 	return false
+}
+
+// updateLoginConfirm handles the login confirmation screen: enter launches the
+// interactive login for the pending profile, esc cancels and returns.
+func (m AppModel) updateLoginConfirm(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
+	switch {
+	case key.Matches(msg, m.keys.Enter):
+		p := m.loginProfile
+		m.loading = true
+		m.loadingMsg = fmt.Sprintf("Authenticating profile %q…", p.Name)
+		// Returning to the originating screen is handled by whoamiMsg via
+		// returnOrActions once the login succeeds.
+		m.screen = m.loginConfirmReturn
+		return m, loginCmd(p)
+	case key.Matches(msg, m.keys.Back):
+		// Cancel: drop back to the originating screen without logging in.
+		m.loading = false
+		m.loadingMsg = ""
+		dest := m.loginConfirmReturn
+		if dest == ScreenLoginConfirm {
+			dest = ScreenActions
+		}
+		m.screen = dest
+		return m, nil
+	}
+	return m, nil
 }
 
 func (m AppModel) updateProfiles(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
@@ -445,7 +509,9 @@ func (m AppModel) updateProfiles(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		return m, nil
 	case key.Matches(msg, m.keys.Enter):
 		if p, ok := m.profileList.SelectedProfile(); ok {
-			return m.connectToProfile(p)
+			// Manual selection: the user just chose this profile, so an ensuing
+			// login does not need a confirmation screen.
+			return m.connectToProfile(p, true)
 		}
 		return m, nil
 	}
@@ -453,13 +519,22 @@ func (m AppModel) updateProfiles(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 }
 
 // connectToProfile sets the given profile active, clears cached state and starts
-// identity verification (and login if needed). Shared by manual selection and the
-// startup restore of the last used profile.
-func (m AppModel) connectToProfile(p awsconfig.Profile) (tea.Model, tea.Cmd) {
+// identity verification (and login if needed). manual is true when the user
+// explicitly selected the profile from the list, in which case a subsequent login
+// skips the confirmation screen (they just chose it). Automatic connections (e.g.
+// startup restore) leave manual=false so a required login is confirmed first.
+func (m AppModel) connectToProfile(p awsconfig.Profile, manual bool) (tea.Model, tea.Cmd) {
 	m.activeProfile = p.Name
-	if p.Region != "" {
+	m.autoLogin = manual
+	// Region precedence: the profile's explicit region wins; otherwise keep an
+	// already-set region (e.g. the persisted last region on startup, or the
+	// region the user picked); otherwise fall back to the default.
+	switch {
+	case p.Region != "":
 		m.activeRegion = p.Region
-	} else {
+	case m.activeRegion != "":
+		// keep current
+	default:
 		m.activeRegion = defaultRegion
 	}
 	m.identity = nil
@@ -474,19 +549,19 @@ func (m AppModel) connectToProfile(p awsconfig.Profile) (tea.Model, tea.Cmd) {
 	return m, tea.Batch(whoamiCmd(p, m.activeRegion), m.spinner.Tick)
 }
 
-// lastProfile returns the persisted last-used profile if it still exists in the
-// current profile list.
-func (m AppModel) lastProfile() (awsconfig.Profile, bool) {
+// lastProfile returns the persisted last-used profile (if it still exists in the
+// current profile list) along with the persisted last region, which may be empty.
+func (m AppModel) lastProfile() (p awsconfig.Profile, region string, ok bool) {
 	st, err := state.Load()
 	if err != nil || st.LastProfile == "" {
-		return awsconfig.Profile{}, false
+		return awsconfig.Profile{}, "", false
 	}
-	for _, p := range m.profiles {
-		if p.Name == st.LastProfile {
-			return p, true
+	for _, pr := range m.profiles {
+		if pr.Name == st.LastProfile {
+			return pr, st.LastRegion, true
 		}
 	}
-	return awsconfig.Profile{}, false
+	return awsconfig.Profile{}, "", false
 }
 
 // returnOrActions returns the saved return screen, defaulting to the actions hub.
@@ -503,20 +578,59 @@ func (m AppModel) returnOrActions() Screen {
 // place lets updateActions (navigation + shortcuts) and viewActions (rendering)
 // stay in sync.
 type actionItem struct {
-	key   string
-	label string
+	key      string
+	label    string
+	category string
 	// run performs the action and returns the next model/command.
 	run func(m AppModel) (tea.Model, tea.Cmd)
 }
 
-// actionItems returns the ordered entries of the actions menu.
+// actionItems returns the ordered service entries of the actions hub, grouped by
+// category (the order here defines both the linear ↑/↓ order and the on-screen
+// grouping). Tunnels is intentionally excluded: it's a transversal view shown as a
+// footer shortcut, not an AWS service to browse.
 func (m AppModel) actionItems() []actionItem {
 	return []actionItem{
-		{key: "e", label: "List EC2 instances", run: (AppModel).enterEC2},
-		{key: "a", label: "Auto Scaling Groups", run: (AppModel).enterASG},
-		{key: "b", label: "Load Balancers (ALB/NLB)", run: (AppModel).enterELB},
-		{key: "t", label: "Active tunnels (port-forward)", run: (AppModel).enterTunnels},
+		{key: "e", label: "EC2 instances", category: "Compute", run: (AppModel).enterEC2},
+		{key: "a", label: "Auto Scaling Groups", category: "Compute", run: (AppModel).enterASG},
+		{key: "b", label: "Load Balancers (ALB/NLB)", category: "Network", run: (AppModel).enterELB},
 	}
+}
+
+// actionCategories returns the ordered, de-duplicated list of categories as they
+// appear in actionItems.
+func (m AppModel) actionCategories() []string {
+	var cats []string
+	seen := map[string]bool{}
+	for _, it := range m.actionItems() {
+		if !seen[it.category] {
+			seen[it.category] = true
+			cats = append(cats, it.category)
+		}
+	}
+	return cats
+}
+
+// nextCategoryCursor returns the index of the first item of the category following
+// the one currently under the cursor (wrapping to the first category).
+func (m AppModel) nextCategoryCursor() int {
+	items := m.actionItems()
+	if len(items) == 0 {
+		return 0
+	}
+	cur := m.actionCursor
+	if cur < 0 || cur >= len(items) {
+		cur = 0
+	}
+	curCat := items[cur].category
+	// Find the start of the next distinct category after the current one.
+	for i := cur + 1; i < len(items); i++ {
+		if items[i].category != curCat {
+			return i
+		}
+	}
+	// Wrap: jump to the very first item (first category).
+	return 0
 }
 
 // updateActions handles the actions hub: cursor navigation (↑/↓ + enter) plus the
@@ -535,6 +649,9 @@ func (m AppModel) updateActions(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		if m.actionCursor < len(items)-1 {
 			m.actionCursor++
 		}
+		return m, nil
+	case key.Matches(msg, m.keys.ToggleHost): // tab: jump to the next category
+		m.actionCursor = m.nextCategoryCursor()
 		return m, nil
 	case key.Matches(msg, m.keys.Enter):
 		if m.actionCursor >= 0 && m.actionCursor < len(items) {
@@ -1058,14 +1175,14 @@ func (m AppModel) updatePFForm(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 	case "esc":
 		m = m.returnFromPF()
 		return m, nil
-	case "tab":
-		m.pfForm.ToggleRemoteHost()
-		return m, nil
-	case "down":
+	case "tab", "down":
 		m.pfForm.Next()
 		return m, nil
-	case "up":
+	case "shift+tab", "up":
 		m.pfForm.Prev()
+		return m, nil
+	case "ctrl+t":
+		m.pfForm.ToggleRemoteHost()
 		return m, nil
 	case "enter":
 		host, remotePort, localPort, err := m.pfForm.Values()

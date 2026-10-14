@@ -2,25 +2,33 @@ package ui
 
 import "github.com/charmbracelet/lipgloss"
 
+// Palette: a vivid cyan/blue theme that adapts to light and dark terminals via
+// lipgloss.AdaptiveColor (the Light variant is used on light backgrounds, the Dark
+// variant on dark ones — detected automatically).
 var (
-	colorAccent  = lipgloss.Color("63")  // purple
-	colorMuted   = lipgloss.Color("241") // gray
-	colorError   = lipgloss.Color("203") // red
-	colorOK      = lipgloss.Color("78")  // green
-	colorWarn    = lipgloss.Color("214") // orange
-	colorSubtle  = lipgloss.Color("250")
-	colorInverse = lipgloss.Color("230")
+	colorAccent  = lipgloss.AdaptiveColor{Light: "31", Dark: "44"}   // cyan / teal (primary)
+	colorAccent2 = lipgloss.AdaptiveColor{Light: "25", Dark: "75"}   // blue (secondary)
+	colorMuted   = lipgloss.AdaptiveColor{Light: "244", Dark: "244"} // mid gray
+	colorError   = lipgloss.AdaptiveColor{Light: "160", Dark: "203"} // red / coral
+	colorOK      = lipgloss.AdaptiveColor{Light: "28", Dark: "42"}   // green
+	colorWarn    = lipgloss.AdaptiveColor{Light: "130", Dark: "214"} // amber
+	colorSubtle  = lipgloss.AdaptiveColor{Light: "60", Dark: "245"}  // dim text
+	colorFg      = lipgloss.AdaptiveColor{Light: "236", Dark: "252"} // primary text
 )
 
 var (
+	// titleStyle: the app name, bold accent (no filled bar).
 	titleStyle = lipgloss.NewStyle().
 			Bold(true).
-			Foreground(colorInverse).
-			Background(colorAccent).
-			Padding(0, 1)
+			Foreground(colorAccent)
 
 	subtitleStyle = lipgloss.NewStyle().
 			Foreground(colorMuted)
+
+	// sectionTitleStyle: bold accent heading used for screen/section titles.
+	sectionTitleStyle = lipgloss.NewStyle().
+				Bold(true).
+				Foreground(colorAccent)
 
 	statusBarStyle = lipgloss.NewStyle().
 			Foreground(colorSubtle)
@@ -28,11 +36,11 @@ var (
 	statusRuleStyle = lipgloss.NewStyle().
 			Foreground(colorMuted)
 
+	// statusLineStyle: the transient status message, accent text with a leading
+	// marker (no filled bar).
 	statusLineStyle = lipgloss.NewStyle().
-			Foreground(colorInverse).
-			Background(colorAccent).
-			Bold(true).
-			Padding(0, 1)
+			Foreground(colorAccent2).
+			Bold(true)
 
 	identityStyle = lipgloss.NewStyle().
 			Foreground(colorOK)
@@ -50,21 +58,39 @@ var (
 	warnStyle = lipgloss.NewStyle().
 			Foreground(colorWarn)
 
+	updateHintStyle = lipgloss.NewStyle().
+			Foreground(colorOK).
+			Bold(true)
+
 	helpStyle = lipgloss.NewStyle().
 			Foreground(colorMuted)
-
-	menuItemStyle = lipgloss.NewStyle().
-			Padding(0, 2)
 
 	menuKeyStyle = lipgloss.NewStyle().
 			Foreground(colorAccent).
 			Bold(true)
 
+	// menuSelStyle: the highlighted menu entry. The selection is marked with an
+	// accent bar in the view; here we just brighten and bold the text.
 	menuSelStyle = lipgloss.NewStyle().
-			Foreground(colorInverse).
-			Background(lipgloss.Color("57")).
-			Bold(true).
-			Padding(0, 1)
+			Foreground(colorFg).
+			Bold(true)
+
+	// selBarStyle renders the accent bar that marks a selected row/entry.
+	selBarStyle = lipgloss.NewStyle().
+			Foreground(colorAccent).
+			Bold(true)
+
+	// actionBoxStyle frames a category of actions on the home screen.
+	actionBoxStyle = lipgloss.NewStyle().
+			Border(lipgloss.RoundedBorder()).
+			BorderForeground(colorMuted).
+			Padding(0, 1).
+			MarginBottom(1)
+
+	// categoryTitleStyle is the heading of an action category box.
+	categoryTitleStyle = lipgloss.NewStyle().
+				Bold(true).
+				Foreground(colorAccent)
 
 	configBarStyle = lipgloss.NewStyle().
 			Foreground(colorSubtle).
@@ -74,11 +100,11 @@ var (
 			MarginTop(1)
 
 	configKeyStyle = lipgloss.NewStyle().
-			Foreground(colorAccent).
+			Foreground(colorAccent2).
 			Bold(true)
 
 	configValStyle = lipgloss.NewStyle().
-			Foreground(colorInverse).
+			Foreground(colorFg).
 			Bold(true)
 
 	panelStyle = lipgloss.NewStyle().

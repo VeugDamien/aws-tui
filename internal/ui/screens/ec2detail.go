@@ -169,73 +169,66 @@ func (d *EC2Detail) ScrollDown(n int) {
 var (
 	detailTitleStyle = lipgloss.NewStyle().
 				Bold(true).
-				Foreground(lipgloss.Color("230")).
-				Background(lipgloss.Color("63")).
-				Padding(0, 1)
+				Foreground(paletteAccent)
 
 	detailSectionStyle = lipgloss.NewStyle().
 				Bold(true).
-				Foreground(lipgloss.Color("63")).
+				Foreground(paletteAccent).
 				Border(lipgloss.NormalBorder(), false, false, true, false).
-				BorderForeground(lipgloss.Color("240"))
+				BorderForeground(paletteBorder)
 
 	detailLabelStyle = lipgloss.NewStyle().
-				Foreground(lipgloss.Color("250")).
+				Foreground(paletteSubtle).
 				Width(18)
 
-	detailMutedStyle = lipgloss.NewStyle().Foreground(lipgloss.Color("241"))
-	detailErrStyle   = lipgloss.NewStyle().Foreground(lipgloss.Color("203"))
-	detailOKStyle    = lipgloss.NewStyle().Foreground(lipgloss.Color("78"))
+	detailMutedStyle = lipgloss.NewStyle().Foreground(paletteMuted)
+	detailErrStyle   = lipgloss.NewStyle().Foreground(paletteError)
+	detailOKStyle    = lipgloss.NewStyle().Foreground(paletteOK)
 
 	detailMetricsBoxStyle = lipgloss.NewStyle().
 				Border(lipgloss.RoundedBorder()).
-				BorderForeground(lipgloss.Color("63")).
+				BorderForeground(paletteAccent).
 				Padding(0, 1)
 
 	detailMetricsTitleStyle = lipgloss.NewStyle().
 				Bold(true).
-				Foreground(lipgloss.Color("63"))
+				Foreground(paletteAccent)
 
 	detailMetricLabelStyle = lipgloss.NewStyle().
 				Bold(true).
-				Foreground(lipgloss.Color("250"))
+				Foreground(paletteFg)
 
 	detailSparkStyle = lipgloss.NewStyle().
-				Foreground(lipgloss.Color("78"))
+				Foreground(paletteAccent2)
 
 	detailAxisStyle = lipgloss.NewStyle().
-			Foreground(lipgloss.Color("240"))
+			Foreground(paletteBorder)
 
 	detailWindowActiveStyle = lipgloss.NewStyle().
 				Bold(true).
-				Foreground(lipgloss.Color("230")).
-				Background(lipgloss.Color("63")).
-				Padding(0, 1)
+				Foreground(paletteAccent)
 
 	detailTagStyle = lipgloss.NewStyle().
-			Foreground(lipgloss.Color("250"))
+			Foreground(paletteSubtle)
 
 	detailCopyBoxStyle = lipgloss.NewStyle().
 				Border(lipgloss.RoundedBorder()).
-				BorderForeground(lipgloss.Color("63")).
+				BorderForeground(paletteAccent).
 				Padding(0, 1)
 
 	detailCopyTitleStyle = lipgloss.NewStyle().
 				Bold(true).
-				Foreground(lipgloss.Color("230")).
-				Background(lipgloss.Color("63")).
-				Padding(0, 1)
+				Foreground(paletteAccent)
 
 	detailCopySelStyle = lipgloss.NewStyle().
 				Bold(true).
-				Foreground(lipgloss.Color("230")).
-				Background(lipgloss.Color("57"))
+				Foreground(paletteFg)
 
 	detailCopyLabelStyle = lipgloss.NewStyle().
-				Foreground(lipgloss.Color("250"))
+				Foreground(paletteSubtle)
 
 	detailCopyValStyle = lipgloss.NewStyle().
-				Foreground(lipgloss.Color("252"))
+				Foreground(paletteFg)
 )
 
 // View renders the detail page as two columns: a scrollable left column
@@ -532,33 +525,47 @@ func (d *EC2Detail) metricsPeriodLabel() string {
 	return fmt.Sprintf("Window %s · 1 pt/%dmin · [m] change", MetricWindowLabel(win), per)
 }
 
-// renderMetric renders one metric: label, a wide sparkline, a time axis and stats.
+// renderMetric renders one metric on a single line: a label, a one-line sparkline
+// auto-scaled from 0 to the series max (so the peak reaches full height), a time
+// axis, and summary stats. The scale peak is shown so the bar heights are legible.
 func renderMetric(s awsclient.MetricSeries, bytesUnit bool, inner, windowMin int) string {
 	if s.Label == "" {
 		return detailMutedStyle.Render("(unavailable)")
 	}
 
-	sparkW := inner
+	fmtVal := func(v float64) string {
+		if bytesUnit {
+			return humanBytes(v)
+		}
+		return fmt.Sprintf("%.1f%%", v)
+	}
+
+	// Auto scale: zero baseline up to the series max, so small-but-varying series
+	// (e.g. low CPU) still show their shape.
+	scaleMax := s.Max
+	if scaleMax <= 0 {
+		scaleMax = 1
+	}
+
+	// A left gutter holds the scale peak so the reader knows what full height means.
+	peak := fmtVal(scaleMax)
+	gutterW := len([]rune(peak))
+	sparkW := inner - gutterW - 1
 	if sparkW < 12 {
 		sparkW = 12
 	}
-	spark := SparklineFixed(s.Values, sparkW)
-	axis := timeAxis(windowMin, sparkW)
 
-	var latest, avg, max string
-	if bytesUnit {
-		latest, avg, max = humanBytes(s.Latest), humanBytes(s.Avg), humanBytes(s.Max)
-	} else {
-		latest = fmt.Sprintf("%.1f%%", s.Latest)
-		avg = fmt.Sprintf("%.1f%%", s.Avg)
-		max = fmt.Sprintf("%.1f%%", s.Max)
-	}
+	spark := SparklineScaled(s.Values, sparkW, scaleMax)
+	axis := timeAxis(windowMin, sparkW)
 
 	var b strings.Builder
 	b.WriteString(detailMetricLabelStyle.Render(s.Label) + "\n")
-	b.WriteString(detailSparkStyle.Render(spark) + "\n")
-	b.WriteString(detailAxisStyle.Render(axis) + "\n")
-	b.WriteString(detailMutedStyle.Render(fmt.Sprintf("cur %s · avg %s · max %s", latest, avg, max)))
+	// Sparkline line: "<peak> ▁▂▅█…"
+	b.WriteString(detailAxisStyle.Render(peak) + " " + detailSparkStyle.Render(spark) + "\n")
+	// Time axis aligned under the sparkline (indented past the gutter).
+	b.WriteString(strings.Repeat(" ", gutterW+1) + detailAxisStyle.Render(axis) + "\n")
+	b.WriteString(detailMutedStyle.Render(fmt.Sprintf("cur %s · avg %s · max %s",
+		fmtVal(s.Latest), fmtVal(s.Avg), fmtVal(s.Max))))
 	return b.String()
 }
 

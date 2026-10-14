@@ -19,12 +19,14 @@ interactive SSM sessions are delegated to the AWS CLI v2.
 - SSH session detection (`SSH_TTY`/`SSH_CONNECTION`): adds `--remote` to login
   commands.
 - Logout (`aws sso logout` / `aws logout`).
-- Region selector (default `eu-west-3`).
+- Region selector (default `eu-west-3`). The last used profile and region are
+  remembered and restored on the next launch.
 - Filterable EC2 instance list (Name, ID, state, type, private IP, AZ), with
   horizontal scrolling for narrow terminals.
 - Per-instance detail page (`enter`): general information, security groups
-  (inbound/outbound rules), CloudWatch metrics (CPU, network) with an adjustable
-  window (1h / 3h / 12h / 24h, `m` key).
+  (inbound/outbound rules), CloudWatch metrics (CPU, network) drawn as block
+  sparklines auto-scaled from zero to the series peak, over an adjustable window
+  (1h / 3h / 12h / 24h, `m` key).
 - Auto Scaling Groups: list (min/desired/max capacities, healthy instances) and
   detail page (configuration, instances with health, target groups, recent
   activities).
@@ -35,6 +37,14 @@ interactive SSM sessions are delegated to the AWS CLI v2.
   (bastion).
 - Copy to clipboard (`y`): profile name, instance ID; copy menu (`Y`) on the detail
   page (private/public IP, ARN, VPC, subnet, AMI…).
+- Non-blocking update check at startup: when a newer release is available, a
+  discreet hint appears in the header (run `aws-tui upgrade` to update). The check
+  is best-effort and silently ignored when offline.
+- Vivid cyan/blue theme that adapts automatically to light and dark terminals.
+- Login confirmation: when a login is required outside an explicit profile
+  selection (startup restore, token expiry), a confirmation screen names the
+  profile/region/auth type before opening the browser login. Manually selecting a
+  profile logs in directly.
 
 ## Requirements
 
@@ -160,7 +170,8 @@ process tree (CLI + plugin) via `taskkill /T /F`.
 | Global | `?` help · `q` / `Ctrl+C` quit |
 | Config (from any action screen) | `p` change profile · `g` change region · `L` logout |
 | Profiles | `↑/↓` navigate · `/` filter · `y` copy name · `enter` select · `esc` cancel |
-| Actions | `↑/↓` navigate · `enter` confirm · (`e` EC2 · `a` ASG · `b` Load Balancers · `t` tunnels) |
+| Login confirmation | `enter` log in · `esc` cancel |
+| Actions | `↑/↓` navigate · `tab` next category · `enter` open · (`e` EC2 · `a` ASG · `b` Load Balancers · `t` tunnels) |
 | Regions | `↑/↓` · `/` filter · `enter` select · `esc` cancel |
 | EC2 | `↑/↓` · `←/→` scroll horizontally · `enter` details · `/` filter · `y` copy ID · `r` refresh · `s` SSM shell · `f` port-forward · `t` tunnels · `esc` back |
 | EC2 detail | `↑/↓` scroll · `y` copy ID · `Y` copy menu (IP, ARN, VPC…) · `m` metrics window (1h/3h/12h/24h) · `r` refresh · `esc` back |
@@ -168,7 +179,7 @@ process tree (CLI + plugin) via `taskkill /T /F`.
 | ASG detail | `↑/↓` scroll · `y` copy name · `Y` copy menu (ARN, subnets, zones…) · `r` refresh · `esc` back |
 | Load Balancers | `↑/↓` · `←/→` scroll · `enter` details · `/` filter · `y` copy DNS · `r` refresh · `esc` back |
 | LB detail | `↑/↓` scroll · `y` copy DNS · `Y` copy menu (name, ARN, VPC…) · `r` refresh · `esc` back |
-| Port-forward (form) | `↑/↓` field · `tab` toggle remote host · `enter` start · `esc` cancel |
+| Port-forward (form) | `tab`/`↑↓` next/prev field · `ctrl+t` toggle remote host · `enter` start · `esc` cancel |
 | Tunnels | `↑/↓` navigate · `x` stop · `X` stop all · `r` restart · `c` clear stopped · `esc` back |
 
 The interface separates **configuration** (persistent top bar: profile, region,
@@ -178,8 +189,9 @@ account — editable via `p`/`g`/`L`) from **functional actions** (EC2, tunnels)
 
 1. Select a profile. If the token is expired, the browser opens for login (SSO or
    `aws login`), then the identity is verified via STS.
-2. You land on the **Actions** screen. The config bar at the top always shows the
-   active profile / region / account.
+2. You land on the **Actions** screen, where services are grouped into categories
+   (Compute, Network…) with active tunnels shown as a footer shortcut. The config
+   bar at the top always shows the active profile / region / account.
 3. Switch profile (`p`) or region (`g`) at any time, from any action screen.
 4. List EC2 instances (`e`), Auto Scaling Groups (`a`) or Load Balancers (`b`);
    filter (`/`).
