@@ -33,7 +33,6 @@ jobs:
           args: release --clean
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          # To enable Homebrew/Scoop (separate repositories), provide a PAT and
-          # uncomment the line below plus the brews/scoops sections in
-          # .goreleaser.yaml:
-          # GORELEASER_TOKEN: ${{ secrets.GORELEASER_TOKEN }}
+          # PAT with write access to the homebrew-tap repository, used by
+          # GoReleaser to push the generated formula. Set as a repo secret.
+          GORELEASER_TOKEN: ${{ secrets.GORELEASER_TOKEN }}

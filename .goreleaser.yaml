@@ -124,23 +124,34 @@ release:
 # (`GORELEASER_TOKEN` secret or a PAT with write access to the tap/bucket repo).
 # Uncomment and create the repositories to enable them.
 # ---------------------------------------------------------------------------
-#
-# brews:
-#   - name: aws-tui
-#     ids:
-#       - default
-#     repository:
-#       owner: VeugDamien
-#       name: homebrew-tap          # repo to create: github.com/VeugDamien/homebrew-tap
-#       token: "{{ .Env.GORELEASER_TOKEN }}"
-#     homepage: https://github.com/VeugDamien/aws-tui
-#     description: "TUI to manage AWS (profiles, EC2, ASG, Load Balancers, SSM)."
-#     license: MIT
-#     dependencies:
-#       - name: awscli
-#     test: |
-#       system "#{bin}/aws-tui --version"
-#
+
+# Homebrew cask published to the VeugDamien/homebrew-tap repository. Casks are the
+# current GoReleaser way to distribute pre-compiled binaries (the old `brews`
+# section is deprecated). Install with: brew install VeugDamien/tap/aws-tui
+homebrew_casks:
+  - name: aws-tui
+    ids:
+      - default
+    binaries:
+      - aws-tui
+    repository:
+      owner: VeugDamien
+      name: homebrew-tap
+      token: "{{ .Env.GORELEASER_TOKEN }}"
+    homepage: https://github.com/VeugDamien/aws-tui
+    description: "TUI to manage AWS (profiles, EC2, ASG, Load Balancers, SSM)."
+    dependencies:
+      - formula: awscli
+    # The binary is not code-signed, so macOS would quarantine it ("app is
+    # damaged"). Strip the quarantine attribute on install until proper signing
+    # (notarization) is set up.
+    hooks:
+      post:
+        install: |
+          on_macos do
+            run "/usr/bin/xattr", args: ["-dr", "com.apple.quarantine", "#{staged_path}/aws-tui"]
+          end
+
 # scoops:
 #   - name: aws-tui
 #     ids:
