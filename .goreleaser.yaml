@@ -144,12 +144,21 @@ homebrew_casks:
       - formula: awscli
     # The binary is not code-signed, so macOS would quarantine it ("app is
     # damaged"). Strip the quarantine attribute on install until proper signing
-    # (notarization) is set up.
+    # (notarization) is set up. The cask installs on both macOS and Linux, so the
+    # hook body guards with `OS.mac?` (plain Ruby) — `on_macos` is NOT valid
+    # inside a postflight block and makes the install fail.
+    #
+    # NOTE: `install:` generates a `postflight` stanza, which recent Homebrew
+    # deprecates in favor of `postflight_steps` (harmless warning on install).
+    # GoReleaser only emits `postflight_steps` via `install_steps:`, available
+    # from v2.19. Once the release workflow runs GoReleaser >= v2.19, switch
+    # `install:` to `install_steps:` below to silence the warning.
     hooks:
       post:
         install: |
-          on_macos do
-            run "/usr/bin/xattr", args: ["-dr", "com.apple.quarantine", "#{staged_path}/aws-tui"]
+          if OS.mac?
+            system_command "/usr/bin/xattr",
+                           args: ["-dr", "com.apple.quarantine", "#{staged_path}/aws-tui"]
           end
 
 # scoops:
