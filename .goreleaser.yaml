@@ -145,6 +145,12 @@ homebrew_casks:
     # The binary is not code-signed, so macOS would quarantine it ("app is
     # damaged"). Strip the quarantine attribute on install until proper signing
     # (notarization) is set up.
+    #
+    # NOTE: `install:` generates a `postflight` stanza, which recent Homebrew
+    # deprecates in favor of `postflight_steps` (harmless warning on install).
+    # GoReleaser only emits `postflight_steps` via `install_steps:`, available
+    # from v2.19. Once the release workflow runs GoReleaser >= v2.19, switch
+    # `install:` to `install_steps:` below to silence the warning.
     hooks:
       post:
         install: |
