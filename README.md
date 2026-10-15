@@ -59,6 +59,14 @@ interactive SSM sessions are delegated to the AWS CLI v2.
 
 ## Installation
 
+### Homebrew (macOS / Linux)
+
+```sh
+brew install VeugDamien/tap/aws-tui
+```
+
+Upgrade with `brew upgrade aws-tui`.
+
 ### Install script (recommended)
 
 Installs the latest version from GitHub Releases (automatic OS and architecture
